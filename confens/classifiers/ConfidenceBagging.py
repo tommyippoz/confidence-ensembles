@@ -6,6 +6,7 @@ from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_is_fitted, check_array
 
 from confens.classifiers.Classifier import Classifier
+from confens.general_utils import current_ms
 from confens.metrics.EnsembleMetric import get_default
 
 
@@ -67,7 +68,7 @@ class ConfidenceBagging(Classifier):
 
         # Compliance with SKLEARN and PYOD
 
-        self.X_ = X
+        self.X_ = X[[0, 1], :]
         self.y_ = y
         self.feature_importances_ = self.compute_feature_importances()
 
@@ -129,7 +130,7 @@ class ConfidenceBagging(Classifier):
         if hasattr(self, "estimators_"):
             # If it is an ensemble and if it is trained
             for i in range(0, self.n_base):
-                predictions.append(self.estimators_[i].predict_proba(X[:, self.feature_sets[i]]))
+                predictions.append(self.estimators_[i].predict(X[:, self.feature_sets[i]]))
             predictions = numpy.column_stack(predictions)
 
         if predictions is not None and len(predictions) > 0:

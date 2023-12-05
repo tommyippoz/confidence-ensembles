@@ -75,7 +75,7 @@ class ConfidenceBoosting(Classifier):
             if self.contamination is not None else 0.5
 
         # Compliance with SKLEARN and PYOD
-        self.X_ = X
+        self.X_ = X[[0, 1], :]
         self.y_ = y
         self.feature_importances_ = self.compute_feature_importances()
 

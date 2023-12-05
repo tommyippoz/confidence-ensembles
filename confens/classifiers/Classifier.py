@@ -308,9 +308,7 @@ class Classifier(BaseEstimator, ClassifierMixin):
             if metrics is None or not isinstance(metrics, list):
                 metrics = get_default()
             for metric in metrics:
-                time = current_ms()
                 metric_scores[metric.get_name()] = metric.compute_diversity(predictions, y)
-                print(metric.get_name() + " - " + str(current_ms() - time))
             return metric_scores
         else:
             # If it is not an ensemble

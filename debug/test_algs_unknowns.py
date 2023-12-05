@@ -24,13 +24,14 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.tree import DecisionTreeClassifier
 # Name of the folder in which look for tabular (CSV) datasets
-from sprout.classifiers.Classifier import XGB, UnsupervisedClassifier
-from sprout.classifiers.ConfidenceBagging import ConfidenceBagging, ConfidenceBaggingWeighted
-from sprout.classifiers.ConfidenceBoosting import ConfidenceBoosting, ConfidenceBoostingWeighted
+from confens.classifiers.Classifier import XGB, UnsupervisedClassifier
+from confens.classifiers.ConfidenceBagging import ConfidenceBagging, ConfidenceBaggingWeighted
+from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting, ConfidenceBoostingWeighted
 
 # The PYOD library contains implementations of unsupervised classifiers.
 # Works only with anomaly detection (no multi-class)
 # ------- GLOBAL VARS -----------
+from confens.metrics.EnsembleMetric import DisagreementMetric, SharedFaultMetric
 
 CSV_FOLDER = "input_folder/all"
 # Name of the column that contains the label in the tabular (CSV) dataset
@@ -121,7 +122,7 @@ if __name__ == '__main__':
     else:
         with open(SCORES_FILE, 'w') as f:
             f.write("dataset_tag,unknown,clf,len_test,len_unk,acc,mcc,rec_unk,ok_confs,misc_confs,unk_ok_confs,"
-                    "unk_misc_confs,time,model_size\n")
+                    "unk_misc_confs,time,model_size,disagreement,sharedfault\n")
 
             # Iterating over CSV files in folder
     for dataset_file in os.listdir(CSV_FOLDER):
@@ -257,6 +258,13 @@ if __name__ == '__main__':
                                                         numpy.average(conf_misc),
                                                         numpy.max(conf_misc)]
 
+                                # Diversity
+                                if hasattr(classifier, "get_diversity"):
+                                    diversity_dict = classifier.get_diversity(x_test, y_test, [DisagreementMetric(),
+                                                                                               SharedFaultMetric()])
+                                else:
+                                    diversity_dict = {}
+
                                 # Prints metrics for binary classification + train time and model size
                                 print(
                                     '%d/%d %s\t-> ACC: %.3f, MCC: %.3f, REC_UNK: %.3f, Conf Diff: %.3f, ConfUnk Diff: %.3f '
@@ -277,7 +285,11 @@ if __name__ == '__main__':
                                                  ";".join(["{:.4f}".format(met) for met in confunk_ok_metrics]) + "," +
                                                  ";".join(
                                                      ["{:.4f}".format(met) for met in confunk_misc_metrics]) + "," +
-                                                 str(current_milli_time() - start_time) + "," + str(size) + "\n")
+                                                 str(current_milli_time() - start_time) + "," + str(size) + "," +
+                                                 str((diversity_dict['Disagreement'] / len(
+                                                     y_test) if 'Disagreement' in diversity_dict else 0.0)) + "," +
+                                                 str((diversity_dict['SharedFault'] / len(
+                                                     y_test) if 'SharedFault' in diversity_dict else 0.0)) + "\n")
 
                             classifier = None
                             index += 1

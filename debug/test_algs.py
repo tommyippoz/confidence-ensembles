@@ -31,7 +31,7 @@ from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting, Confidenc
 # The PYOD library contains implementations of unsupervised classifiers.
 # Works only with anomaly detection (no multi-class)
 # ------- GLOBAL VARS -----------
-from confens.metrics.EnsembleMetric import SharedFaultMetric
+from confens.metrics.EnsembleMetric import SharedFaultMetric, DisagreementMetric
 
 CSV_FOLDER = "input_folder/test"
 # Name of the column that contains the label in the tabular (CSV) dataset
@@ -119,13 +119,12 @@ def get_learners(cont_perc):
 if __name__ == '__main__':
 
     existing_exps = None
-    if os.path.exists(SCORES_FILE):
-        existing_exps = pandas.read_csv(SCORES_FILE)
-        existing_exps = existing_exps.loc[:, ['dataset_tag', 'clf']]
-    else:
-        with open(SCORES_FILE, 'w') as f:
-            f.write("dataset_tag,clf,binary,tt_split,acc,misc,mcc,ok_conf,misc_conf,time,model_size\n")
-    existing_exps = None
+    #if os.path.exists(SCORES_FILE):
+    #    existing_exps = pandas.read_csv(SCORES_FILE)
+    #    existing_exps = existing_exps.loc[:, ['dataset_tag', 'clf']]
+    #else:
+    with open(SCORES_FILE, 'w') as f:
+        f.write("dataset_tag,clf,binary,tt_split,acc,misc,mcc,ok_conf,misc_conf,time,model_size,disagreement,sharedfault\n")
 
     # Iterating over CSV files in folder
     for dataset_file in os.listdir(CSV_FOLDER):
@@ -221,7 +220,10 @@ if __name__ == '__main__':
                     mcc = abs(metrics.matthews_corrcoef(y_test, y_pred))
 
                     # Diversity
-                    diversity_dict = classifier.get_diversity(x_test, y_test, [SharedFaultMetric()])
+                    if hasattr(classifier, "get_diversity"):
+                        diversity_dict = classifier.get_diversity(x_test, y_test, [DisagreementMetric(), SharedFaultMetric()])
+                    else:
+                        diversity_dict = {}
 
                     if BINARIZE:
                         # Prints metrics for binary classification + train time and model size
@@ -231,12 +233,13 @@ if __name__ == '__main__':
                               (i, len(learners), clf_name, tp, tn, fp, fn, acc, mcc,
                                (conf_ok_metrics[2] - conf_misc_metrics[2]),
                                current_milli_time() - start_time, size / 1000.0,
-                              (diversity_dict['QStat'] if 'QStat' in diversity_dict else 0.0)))
+                              (diversity_dict['SharedFault'] if 'SharedFault' in diversity_dict else 0.0)))
                     else:
                         # Prints just accuracy for multi-class classification problems, no confusion matrix
                         print('%d/%d %s\t-> Accuracy: %.3f, Conf Diff: %.3f - train time: %d ms - model size: %.3f KB'
                               % (i, len(learners), clf_name, acc, (conf_ok_metrics[2] - conf_misc_metrics[2]),
-                                 current_milli_time() - start_time, size / 1000.0))
+                                 current_milli_time() - start_time, size / 1000.0,
+                              (diversity_dict['SharedFault'] if 'SharedFault' in diversity_dict else 0.0)))
 
                     # Updates CSV file form metrics of experiment
                     with open(SCORES_FILE, "a") as myfile:
@@ -245,7 +248,9 @@ if __name__ == '__main__':
                                      str(TT_SPLIT) + ',' + str(acc) + "," + str(misc) + "," + str(mcc) + "," +
                                      ";".join(["{:.4f}".format(met) for met in conf_ok_metrics]) + "," +
                                      ";".join(["{:.4f}".format(met) for met in conf_misc_metrics]) + "," +
-                                     str(current_milli_time() - start_time) + "," + str(size) + "\n")
+                                     str(current_milli_time() - start_time) + "," + str(size) + "," +
+                                     str((diversity_dict['Disagreement']/len(y_test) if 'Disagreement' in diversity_dict else 0.0)) + "," +
+                                     str((diversity_dict['SharedFault']/len(y_test) if 'SharedFault' in diversity_dict else 0.0)) + "\n")
 
                 classifier = None
                 i += 1
