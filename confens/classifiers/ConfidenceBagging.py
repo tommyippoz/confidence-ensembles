@@ -6,7 +6,7 @@ from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_is_fitted, check_array
 
 from confens.classifiers.Classifier import Classifier
-from confens.metrics.EnsembleMetric import QStatMetric, get_default
+from confens.metrics.EnsembleMetric import get_default
 
 
 class ConfidenceBagging(Classifier):

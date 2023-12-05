@@ -28,7 +28,6 @@ from sklearn.tree import DecisionTreeClassifier
 from confens.classifiers.Classifier import XGB, UnsupervisedClassifier
 from confens.classifiers.ConfidenceBagging import ConfidenceBagging, ConfidenceBaggingWeighted
 from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting, ConfidenceBoostingWeighted
-
 # The PYOD library contains implementations of unsupervised classifiers.
 # Works only with anomaly detection (no multi-class)
 # ------- GLOBAL VARS -----------

@@ -1,11 +1,8 @@
-import copy
-
 import numpy
 import pandas
 import pandas as pd
 import pyod
 import sklearn
-
 from logitboost import LogitBoost
 from pyod.models.abod import ABOD
 from pyod.models.base import BaseDetector
@@ -22,7 +19,6 @@ from pyod.models.lof import LOF
 from pyod.models.mcd import MCD
 from pyod.models.ocsvm import OCSVM
 from pyod.models.pca import PCA
-
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier, BaggingClassifier, GradientBoostingClassifier
@@ -39,10 +35,8 @@ from sklearn.utils.validation import check_is_fitted, check_array
 from xgboost import XGBClassifier
 
 from confens.general_utils import current_ms
-
 # ---------------------------------- SUPPORT METHODS ------------------------------------
-from confens.metrics.EnsembleMetric import QStatMetric, SigmaMetric, CoupleDisagreementMetric, DisagreementMetric, \
-    SharedFaultMetric, get_default
+from confens.metrics.EnsembleMetric import get_default
 
 
 def get_classifier_name(clf):
