@@ -1,3 +1,5 @@
+import copy
+
 import numpy
 import pandas
 import pandas as pd
@@ -199,7 +201,7 @@ class Classifier(BaseEstimator, ClassifierMixin):
         Constructor of a generic Classifier
         :param clf: algorithm to be used as Classifier
         """
-        self.clf = clf
+        self.clf = copy.deepcopy(clf) if clf is not None else None
         self._estimator_type = "classifier"
         self.feature_importances_ = None
         self.X_ = None
@@ -263,6 +265,13 @@ class Classifier(BaseEstimator, ClassifierMixin):
         elif hasattr(self.clf, 'coef_'):
             return numpy.sum(numpy.absolute(self.clf.coef_), axis=0)
         return []
+
+    def is_unsupervised(self):
+        """
+        true if the classifier is unsupervised
+        :return: boolean
+        """
+        return hasattr(self, 'classes_') and self.classes_ == [0, 1]
 
     def classifier_name(self):
         """

@@ -6,7 +6,6 @@ from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_is_fitted, check_array
 
 from confens.classifiers.Classifier import Classifier
-from confens.general_utils import current_ms
 from confens.metrics.EnsembleMetric import get_default
 
 
@@ -146,6 +145,10 @@ class ConfidenceBagging(Classifier):
             return {}
 
     def classifier_name(self):
+        """
+        Gets classifier name as string
+        :return: the classifier name
+        """
         clf_name = self.clf.classifier_name() if isinstance(self.clf, Classifier) else self.clf.__class__.__name__
         if clf_name == 'Pipeline':
             keys = list(self.clf.named_steps.keys())
@@ -156,6 +159,9 @@ class ConfidenceBagging(Classifier):
 
 
 class ConfidenceBaggingWeighted(ConfidenceBagging):
+    """
+    This is the object that executes a confidence bagger weighting its final probabilities to devise a prediction
+    """
 
     def __init__(self, clf, n_base: int = 10, max_features: float = 0.7, sampling_ratio: float = 0.7):
         super().__init__(clf, n_base, max_features, sampling_ratio, None, None)
@@ -182,6 +188,10 @@ class ConfidenceBaggingWeighted(ConfidenceBagging):
         return proba
 
     def classifier_name(self):
+        """
+        Gets classifier name as string
+        :return: the classifier name
+        """
         clf_name = self.clf.classifier_name() if isinstance(self.clf, Classifier) else self.clf.__class__.__name__
         if clf_name == 'Pipeline':
             keys = list(self.clf.named_steps.keys())

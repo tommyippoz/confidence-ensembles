@@ -188,12 +188,16 @@ class ConfidenceBoosting(Classifier):
         :return: array of predicted class
         """
         proba = self.predict_proba(X)
-        if len(self.classes_) == 2:
-            return self.classes_[1 * (proba[:, 0] < self.proba_thr)]
+        if self.is_unsupervised():
+            return 1 * (proba[:, 0] < self.proba_thr)
         else:
             return self.classes_[numpy.argmax(proba, axis=1)]
 
     def classifier_name(self):
+        """
+        Gets classifier name as string
+        :return: the classifier name
+        """
         clf_name = self.clf.classifier_name() if isinstance(self.clf, Classifier) else self.clf.__class__.__name__
         if clf_name == 'Pipeline':
             keys = list(self.clf.named_steps.keys())
@@ -247,5 +251,9 @@ class ConfidenceBoostingWeighted(ConfidenceBoosting):
         return proba
 
     def classifier_name(self):
+        """
+        Gets classifier name as string
+        :return: the classifier name
+        """
         tag = super().classifier_name()
         return tag.replace("ConfidenceBooster", "ConfidenceBoosterWeighted")

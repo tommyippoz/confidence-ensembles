@@ -23,11 +23,11 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.tree import DecisionTreeClassifier
+
 # Name of the folder in which look for tabular (CSV) datasets
 from confens.classifiers.Classifier import XGB, UnsupervisedClassifier
 from confens.classifiers.ConfidenceBagging import ConfidenceBagging, ConfidenceBaggingWeighted
 from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting, ConfidenceBoostingWeighted
-
 # The PYOD library contains implementations of unsupervised classifiers.
 # Works only with anomaly detection (no multi-class)
 # ------- GLOBAL VARS -----------
@@ -111,7 +111,7 @@ def get_learners(cont_perc):
 
 
 # ----------------------- MAIN ROUTINE ---------------------
-
+# This script replicates experiments done for testing the robustness of confidence ensembles
 
 if __name__ == '__main__':
 
