@@ -25,13 +25,13 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.tree import DecisionTreeClassifier
 
 # Name of the folder in which look for tabular (CSV) datasets
-from confens.classifiers.Classifier import XGB, UnsupervisedClassifier
-from confens.classifiers.ConfidenceBagging import ConfidenceBagging, ConfidenceBaggingWeighted
-from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting, ConfidenceBoostingWeighted
+from src.classifiers.Classifier import XGB, UnsupervisedClassifier
+from src.classifiers.ConfidenceBagging import ConfidenceBagging, ConfidenceBaggingWeighted
+from src.classifiers.ConfidenceBoosting import ConfidenceBoosting, ConfidenceBoostingWeighted
 # The PYOD library contains implementations of unsupervised classifiers.
 # Works only with anomaly detection (no multi-class)
 # ------- GLOBAL VARS -----------
-from confens.metrics.EnsembleMetric import DisagreementMetric, SharedFaultMetric
+from src.metrics.EnsembleMetric import DisagreementMetric, SharedFaultMetric
 
 CSV_FOLDER = "input_folder/all"
 # Name of the column that contains the label in the tabular (CSV) dataset
