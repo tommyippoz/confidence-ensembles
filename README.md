@@ -34,7 +34,7 @@ Assuming the classifier has such a structure, a confidence ensemble can be set u
 
 Snippet for supervised learning
 
-https://github.com/tommyippoz/confidence-ensembles/blob/dbdcf730c55cc82505380c60339179e0d1a129c9/tests/example_supervised.py#L50-64
+https://github.com/tommyippoz/confidence-ensembles/blob/dbdcf730c55cc82505380c60339179e0d1a129c9/tests/example_supervised.py#L50
 
 ## Credits
 
