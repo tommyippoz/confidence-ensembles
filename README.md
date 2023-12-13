@@ -36,6 +36,10 @@ Snippet for supervised learning
 
 https://github.com/tommyippoz/confidence-ensembles/blob/dbdcf730c55cc82505380c60339179e0d1a129c9/tests/example_supervised.py#L50-L64
 
+Snippet for unsupervised learning
+
+https://github.com/tommyippoz/confidence-ensembles/blob/8bbca5446fa912174dd78fbb9bcc03c19d5a166c/tests/example_unsupervised.py#L54-L69
+
 ## Credits
 
 Developed @ University of Trento, Povo, Italy, and University of Florence, Florence, Italy
