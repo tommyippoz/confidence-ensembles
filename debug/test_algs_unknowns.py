@@ -26,8 +26,8 @@ from sklearn.tree import DecisionTreeClassifier
 
 # Name of the folder in which look for tabular (CSV) datasets
 from src.classifiers.Classifier import XGB, UnsupervisedClassifier
-from src.classifiers.ConfidenceBagging import ConfidenceBagging, ConfidenceBaggingWeighted
-from src.classifiers.ConfidenceBoosting import ConfidenceBoosting, ConfidenceBoostingWeighted
+from src.classifiers.ConfidenceBagging import ConfidenceBagging
+from src.classifiers.ConfidenceBoosting import ConfidenceBoosting
 # The PYOD library contains implementations of unsupervised classifiers.
 # Works only with anomaly detection (no multi-class)
 # ------- GLOBAL VARS -----------
@@ -91,21 +91,19 @@ def get_learners(cont_perc):
     learners = []
     for clf in base_learners:
         learners.append(clf)
-        for n_base in [5, 10]:
+        for n_base in [10]:
             for s_ratio in [0.2, 0.5]:
-                learners.append(ConfidenceBaggingWeighted(clf=clf, n_base=n_base,
-                                                          sampling_ratio=s_ratio, max_features=0.7))
+                learners.append(ConfidenceBagging(clf=clf, n_base=n_base, sampling_ratio=s_ratio,
+                                                  max_features=0.7, weighted=True))
                 for n_decisors in [int(n_base / 2)]:
                     learners.append(ConfidenceBagging(clf=clf, n_base=n_base, n_decisors=n_decisors,
                                                       sampling_ratio=s_ratio, max_features=0.7))
             for conf_thr in [0.9, 0.8]:
                 for s_ratio in [0.1, 0.3, 0.5]:
-                    learners.append(ConfidenceBoosting(clf=clf, n_base=n_base,
-                                                       learning_rate=2, sampling_ratio=s_ratio,
-                                                       contamination=cont_perc, conf_thr=conf_thr))
-                    learners.append(ConfidenceBoostingWeighted(clf=clf, n_base=n_base,
-                                                               learning_rate=2, sampling_ratio=s_ratio,
-                                                               contamination=cont_perc, conf_thr=conf_thr))
+                    for w in [False, True]:
+                        learners.append(ConfidenceBoosting(clf=clf, n_base=n_base, learning_rate=2,
+                                                           sampling_ratio=s_ratio, contamination=cont_perc,
+                                                           conf_thr=conf_thr, weighted=w))
 
     return learners
 

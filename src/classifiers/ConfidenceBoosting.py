@@ -11,8 +11,8 @@ class ConfidenceBoosting(Classifier):
     Class for creating Confidence Boosting ensembles
     """
 
-    def __init__(self, clf, n_base: int = 10, learning_rate: float = None,
-                 sampling_ratio: float = 0.5, contamination: float = None, conf_thr: float = 0.8):
+    def __init__(self, clf, n_base: int = 10, learning_rate: float = None, sampling_ratio: float = 0.5,
+                 contamination: float = None, conf_thr: float = 0.8, weighted: bool = False):
         """
         Constructor
         :param clf: the algorithm to be used for creating base learners
@@ -23,6 +23,7 @@ class ConfidenceBoosting(Classifier):
         :param conf_thr: threshold of acceptance for confidence scores. Lower confidence means untrustable result
         """
         super().__init__(clf)
+        self.weighted = weighted
         self.proba_thr = None
         self.conf_thr = conf_thr
         self.contamination = contamination
@@ -147,11 +148,28 @@ class ConfidenceBoosting(Classifier):
         :param X: the test set
         :return: array of probabilities for each data point and each class
         """
+        proba_array = []
+        conf_array = []
         proba = numpy.zeros((X.shape[0], len(self.classes_)))
         for clf in self.estimators_:
             predictions = clf.predict_proba(X)
             proba += predictions
-        return proba / self.n_base
+            proba_array.append(predictions)
+            conf_array.append(numpy.max(predictions, axis=1))
+            # 3d matrix (clf, row, probability for class)
+        proba_array = numpy.asarray(proba_array)
+        # 2dim matrix (clf, confidence for row)
+        conf_array = numpy.asarray(conf_array)
+
+        if self.weighted:
+            # Weighting probas using confidence
+            proba = numpy.zeros(proba_array[0].shape)
+            for i in range(0, X.shape[0]):
+                proba[i] = numpy.sum(proba_array[:, i, :].T * conf_array[:, i], axis=1) / numpy.sum(conf_array[:, i])
+        else:
+            proba = proba / self.n_base
+        # Final averaged Result
+        return proba
 
     def predict_confidence(self, X):
         """
@@ -202,58 +220,11 @@ class ConfidenceBoosting(Classifier):
         if clf_name == 'Pipeline':
             keys = list(self.clf.named_steps.keys())
             clf_name = str(keys) if len(keys) != 2 else str(keys[1]).upper()
-        return "ConfidenceBooster(" + str(clf_name) + "-" + \
-               str(self.n_base) + "-" + str(self.conf_thr) + "-" + \
-               str(self.learning_rate) + "-" + str(self.sampling_ratio) + ")"
-
-
-class ConfidenceBoostingWeighted(ConfidenceBoosting):
-    """
-    Class for creating Confidence Boosting ensembles with weighted predictions
-    """
-
-    def __init__(self, clf, n_base: int = 10, learning_rate: float = None,
-                 sampling_ratio: float = 0.5, contamination: float = None, conf_thr: float = 0.8):
-        """
-        Constructor
-        :param clf: the algorithm to be used for creating base learners
-        :param n_base: number of base learners (= size of the ensemble)
-        :param learning_rate: learning rate for updating dataset weights
-        :param sampling_ratio: percentage of the dataset to be used at each iteration
-        :param contamination: percentage of anomalies. TRThis is used to automatically devise conf_thr
-        :param conf_thr: threshold of acceptance for confidence scores. Lower confidence means untrustable result
-        """
-        super().__init__(clf, n_base, learning_rate, sampling_ratio, contamination, conf_thr)
-
-    def predict_proba(self, X):
-        """
-        Method to compute prediction probabilities (i.e., normalized logits) of a classifier
-        :param X: the test set
-        :return: array of probabilities for each data point and each class
-        """
-        proba_array = []
-        conf_array = []
-        for clf in self.estimators_:
-            predictions = clf.predict_proba(X)
-            proba_array.append(predictions)
-            conf_array.append(numpy.max(predictions, axis=1))
-            # 3d matrix (clf, row, probability for class)
-        proba_array = numpy.asarray(proba_array)
-        # 2dim matrix (clf, confidence for row)
-        conf_array = numpy.asarray(conf_array)
-
-        # Weighting probas using confidence
-        proba = numpy.zeros(proba_array[0].shape)
-        for i in range(0, X.shape[0]):
-            proba[i] = numpy.sum(proba_array[:, i, :].T * conf_array[:, i], axis=1) / numpy.sum(conf_array[:, i])
-
-        # Final averaged Result
-        return proba
-
-    def classifier_name(self):
-        """
-        Gets classifier name as string
-        :return: the classifier name
-        """
-        tag = super().classifier_name()
-        return tag.replace("ConfidenceBooster", "ConfidenceBoosterWeighted")
+        if self.weighted:
+            return "ConfidenceBoosterWeighted(" + str(clf_name) + "-" + \
+                   str(self.n_base) + "-" + str(self.conf_thr) + "-" + \
+                   str(self.learning_rate) + "-" + str(self.sampling_ratio) + ")"
+        else:
+            return "ConfidenceBooster(" + str(clf_name) + "-" + \
+                   str(self.n_base) + "-" + str(self.conf_thr) + "-" + \
+                   str(self.learning_rate) + "-" + str(self.sampling_ratio) + ")"

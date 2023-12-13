@@ -53,112 +53,6 @@ def get_feature_importance(clf):
         return clf.feature_importances_
 
 
-def build_classifier(classifier, x_train, y_train, x_test, y_test, verbose=True):
-    """
-    Builds and Exercises a Classifier
-    :param classifier: classifier object
-    :param x_train: train features
-    :param y_train: train label
-    :param x_test: test features
-    :param y_test: test label
-    :param verbose: True if there should be console output
-    :return: probabilities and predictions of the classifier
-    """
-    if verbose:
-        print("\nBuilding classifier: " + get_classifier_name(classifier))
-
-    if isinstance(x_train, pandas.DataFrame):
-        train_data = x_train.to_numpy()
-    else:
-        train_data = x_train
-
-    # Fitting classifier
-    start_ms = current_ms()
-    if isinstance(classifier, pyod.models.base.BaseDetector):
-        classifier.fit(train_data)
-    else:
-        classifier.fit(train_data, y_train)
-    train_ms = current_ms()
-
-    # Test features have to be a numpy array
-    if isinstance(x_test, pandas.DataFrame):
-        test_data = x_test.to_numpy()
-    else:
-        test_data = x_test
-
-    # Predicting labels
-    y_pred = classifier.predict(test_data)
-    test_time = current_ms() - train_ms
-
-    # Predicting probabilities
-    y_proba = classifier.predict_proba(test_data)
-    if isinstance(y_proba, pd.DataFrame):
-        y_proba = y_proba.to_numpy()
-
-    if verbose:
-        print(get_classifier_name(classifier) + " train/test in " + str(train_ms - start_ms) + "/" +
-              str(test_time) + " ms with Accuracy: " + str(sklearn.metrics.accuracy_score(y_test, y_pred)))
-
-    return y_proba, y_pred
-
-
-def choose_classifier(clf_name, features, y_label, metric, contamination=None):
-    if contamination is not None and contamination > 0.5:
-        contamination = 0.5
-    if clf_name in {"XGB", "XGBoost"}:
-        return XGBClassifier(use_label_encoder=False, eval_metric="logloss")
-    elif clf_name in {"DT", "DTree", "DecisionTree"}:
-        return DecisionTreeClassifier()
-    elif clf_name in {"KNN", "knn", "kNN", "KNeighbours"}:
-        return KNeighbors(k=11)
-    elif clf_name in {"SVM"}:
-        return BaggingClassifier(SVC(gamma='auto', probability=True), max_samples=0.1, n_estimators=10)
-    elif clf_name in {"LDA"}:
-        return LinearDiscriminantAnalysis()
-    elif clf_name in {"GNB", "GaussianNB"}:
-        return Pipeline([("norm", MinMaxScaler()), ("clf", GaussianNB())])
-    elif clf_name in {"MNB", "MultinomialNB"}:
-        return Pipeline([("norm", MinMaxScaler()), ("clf", MultinomialNB())])
-    elif clf_name in {"Regression", "LogisticRegression", "LR"}:
-        return LogisticReg()
-    elif clf_name in {"RF", "RandomForest"}:
-        return RandomForestClassifier(n_estimators=10)
-    elif clf_name in {"LB", "LogBoost", "LogitBoost"}:
-        return LogitBoost(n_estimators=10)
-    elif clf_name in {"GBC", "GradientBoosting"}:
-        return GradientBoostingClassifier(n_estimators=50)
-    elif clf_name in {"COPOD"}:
-        return UnsupervisedClassifier(COPOD(contamination=contamination))
-    elif clf_name in {"ECOD"}:
-        return UnsupervisedClassifier(ECOD(contamination=contamination))
-    elif clf_name in {"HBOS"}:
-        return UnsupervisedClassifier(HBOS(contamination=contamination, n_bins=30))
-    elif clf_name in {"MCD"}:
-        return UnsupervisedClassifier(MCD(contamination=contamination, support_fraction=0.9))
-    elif clf_name in {"PCA"}:
-        return UnsupervisedClassifier(PCA(contamination=contamination))
-    elif clf_name in {"CBLOF"}:
-        return UnsupervisedClassifier(CBLOF(contamination=contamination, alpha=0.75, beta=3))
-    elif clf_name in {"OCSVM", "1SVM"}:
-        return UnsupervisedClassifier(OCSVM(contamination=contamination))
-    elif clf_name in {"uKNN"}:
-        return UnsupervisedClassifier(KNN(contamination=contamination, n_neighbors=3))
-    elif clf_name in {"LOF"}:
-        return UnsupervisedClassifier(LOF(contamination=contamination, n_neighbors=5))
-    elif clf_name in {"INNE"}:
-        return UnsupervisedClassifier(INNE(contamination=contamination))
-    elif clf_name in {"FastABOD", "ABOD", "FABOD"}:
-        return UnsupervisedClassifier(ABOD(contamination=contamination, method='fast', n_neighbors=7))
-    elif clf_name in {"COF"}:
-        return UnsupervisedClassifier(COF(contamination=contamination, n_neighbors=9))
-    elif clf_name in {"IFOREST", "IForest"}:
-        return UnsupervisedClassifier(IForest(contamination=contamination, n_estimators=10))
-    elif clf_name in {"LODA"}:
-        return UnsupervisedClassifier(LODA(contamination=contamination, n_bins=100))
-    else:
-        pass
-
-
 def auto_bag_rate(n_features):
     """
     Method used to automatically devise a rate to include features in bagging
@@ -272,7 +166,7 @@ class Classifier(BaseEstimator, ClassifierMixin):
         true if the classifier is unsupervised
         :return: boolean
         """
-        return hasattr(self, 'classes_') and self.classes_ == [0, 1]
+        return hasattr(self, 'classes_') and numpy.array_equal(self.classes_, [0, 1])
 
     def classifier_name(self):
         """
