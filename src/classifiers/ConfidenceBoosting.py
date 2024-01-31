@@ -11,22 +11,22 @@ class ConfidenceBoosting(Classifier):
     Class for creating Confidence Boosting ensembles
     """
 
-    def __init__(self, clf, n_base: int = 10, learning_rate: float = None, sampling_ratio: float = 0.5,
-                 contamination: float = None, conf_thr: float = 0.8, weighted: bool = False):
+    def __init__(self, clf, n_base: int = 10, learning_rate: float = None,
+                 sampling_ratio: float = 0.5, conf_thr: float = 0.8, weighted: bool = False):
         """
         Constructor
         :param clf: the algorithm to be used for creating base learners
         :param n_base: number of base learners (= size of the ensemble)
         :param learning_rate: learning rate for updating dataset weights
         :param sampling_ratio: percentage of the dataset to be used at each iteration
-        :param contamination: percentage of anomalies. TRThis is used to automatically devise conf_thr
         :param conf_thr: threshold of acceptance for confidence scores. Lower confidence means untrustable result
+        :param weighted: True if prediction has to be computed as a weighted sum of probabilities
         """
         super().__init__(clf)
         self.weighted = weighted
         self.proba_thr = None
         self.conf_thr = conf_thr
-        self.contamination = contamination
+        self.contamination = clf.contamination if hasattr(clf, 'contamination') else None
         if n_base > 1:
             self.n_base = n_base
         else:

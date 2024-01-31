@@ -33,7 +33,7 @@ from src.classifiers.ConfidenceBoosting import ConfidenceBoosting
 # ------- GLOBAL VARS -----------
 from src.metrics.EnsembleMetric import SharedFaultMetric, DisagreementMetric
 
-CSV_FOLDER = "input_folder/test"
+CSV_FOLDER = "sample_data"
 # Name of the column that contains the label in the tabular (CSV) dataset
 LABEL_NAME = 'multilabel'
 # Name of the 'normal' class in datasets. This will be used only for binary classification (anomaly detection)

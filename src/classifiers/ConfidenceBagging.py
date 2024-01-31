@@ -11,11 +11,21 @@ from src.metrics.EnsembleMetric import get_default
 
 class ConfidenceBagging(Classifier):
     """
-    Class for creating Unsupervised boosting ensembles
+    Class for creating bagging ensembles
     """
 
     def __init__(self, clf, n_base: int = 10, max_features: float = 0.7, sampling_ratio: float = 0.7,
                  perc_decisors: float = None, n_decisors: int = None, weighted: bool = False):
+        """
+        Constructor
+        :param clf: the algorithm to be used for creating base learners
+        :param n_base: number of base learners (= size of the ensemble)
+        :param max_features: percentage of features to be used at each iteration
+        :param sampling_ratio: percentage of the dataset to be used at each iteration
+        :param perc_decisors: percentage of base learners to be used for prediction
+        :param n_decisors: number of base learners to be used for prediction
+        :param weighted: True if prediction has to be computed as a weighted sum of probabilities
+        """
         super().__init__(clf)
         self.weighted = weighted
         if n_base > 1:
@@ -23,14 +33,11 @@ class ConfidenceBagging(Classifier):
         else:
             print("Ensembles have to be at least 2")
             self.n_base = 10
-        if max_features is not None and 0 < max_features <= 1:
-            self.max_features = max_features
-        else:
-            self.max_features = 0.7
-        if sampling_ratio is not None and 0 < sampling_ratio <= 1:
-            self.sampling_ratio = sampling_ratio
-        else:
-            self.sampling_ratio = 0.7
+
+        self.max_features = max_features if max_features is not None and 0 < max_features <= 1 else 0.7
+
+        self.sampling_ratio = sampling_ratio if sampling_ratio is not None and 0 < sampling_ratio <= 1 else 0.7
+
         if perc_decisors is not None and 0 < perc_decisors <= 1:
             if n_decisors is not None and 0 < n_decisors <= self.n_base:
                 print('Both perc_decisors and n_decisors are specified, prioritizing perc_decisors')
