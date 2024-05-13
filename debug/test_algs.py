@@ -39,7 +39,7 @@ LABEL_NAME = 'multilabel'
 # Name of the 'normal' class in datasets. This will be used only for binary classification (anomaly detection)
 NORMAL_TAG = 'normal'
 # Name of the file in which outputs of the analysis will be saved
-SCORES_FILE = "cboost_wdiversity.csv"
+SCORES_FILE = "test.csv"
 # Percantage of test data wrt train data
 TT_SPLIT = 0.5
 # True if debug information needs to be shown
@@ -93,7 +93,7 @@ def get_learners(cont_perc):
 
     learners = []
     for clf in base_learners:
-        learners.append(clf)
+        #learners.append(clf)
         for n_base in [5, 10, 20]:
             for s_ratio in [0.2, 0.5, 0.7]:
                 learners.append(ConfidenceBagging(clf=clf, n_base=n_base, sampling_ratio=s_ratio,
@@ -102,12 +102,12 @@ def get_learners(cont_perc):
                     for mf in [0.5, 0.7]:
                         learners.append(ConfidenceBagging(clf=clf, n_base=n_base, n_decisors=n_decisors,
                                                           sampling_ratio=s_ratio, max_features=mf, weighted=True))
-            for conf_thr in [0.8, 0.5]:
-                for s_ratio in [0.3, 0.5]:
-                    for w in [False, True]:
-                        learners.append(ConfidenceBoosting(clf=clf, n_base=n_base, learning_rate=2,
-                                                           sampling_ratio=s_ratio,
-                                                           conf_thr=conf_thr, weighted=w))
+            # for conf_thr in [0.8, 0.5]:
+            #     for s_ratio in [0.3, 0.5]:
+            #         for w in [False, True]:
+            #             learners.append(ConfidenceBoosting(clf=clf, n_base=n_base, learning_rate=2,
+            #                                                sampling_ratio=s_ratio,
+            #                                                conf_thr=conf_thr, weighted=w))
 
     return learners
 
@@ -241,7 +241,7 @@ if __name__ == '__main__':
                               (diversity_dict['SharedFault'] if 'SharedFault' in diversity_dict else 0.0)))
 
                     # Updates CSV file form metrics of experiment
-                    with open(SCORES_FILE, "a") as myfile:
+                    with open("./asd.csv", "a") as myfile:
                         # Prints result of experiment in CSV file
                         myfile.write(full_name + "," + clf_name + "," + str(BINARIZE) + "," +
                                      str(TT_SPLIT) + ',' + str(acc) + "," + str(misc) + "," + str(mcc) + "," +
