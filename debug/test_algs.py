@@ -25,13 +25,14 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.tree import DecisionTreeClassifier
 
 # Name of the folder in which look for tabular (CSV) datasets
-from src.classifiers.Classifier import XGB, UnsupervisedClassifier
-from src.classifiers.ConfidenceBagging import ConfidenceBagging
-from src.classifiers.ConfidenceBoosting import ConfidenceBoosting
+import confens
+from confens.classifiers.Classifier import XGB, UnsupervisedClassifier
+from confens.classifiers.ConfidenceBagging import ConfidenceBagging
+from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting
 # The PYOD library contains implementations of unsupervised classifiers.
 # Works only with anomaly detection (no multi-class)
 # ------- GLOBAL VARS -----------
-from src.metrics.EnsembleMetric import SharedFaultMetric, DisagreementMetric
+from confens.metrics.EnsembleMetric import SharedFaultMetric, DisagreementMetric
 
 CSV_FOLDER = "input_folder/test"
 # Name of the column that contains the label in the tabular (CSV) dataset
@@ -39,7 +40,7 @@ LABEL_NAME = 'multilabel'
 # Name of the 'normal' class in datasets. This will be used only for binary classification (anomaly detection)
 NORMAL_TAG = 'normal'
 # Name of the file in which outputs of the analysis will be saved
-SCORES_FILE = "test.csv"
+SCORES_FILE = "base_algs_full.csv"
 # Percantage of test data wrt train data
 TT_SPLIT = 0.5
 # True if debug information needs to be shown
@@ -93,15 +94,17 @@ def get_learners(cont_perc):
 
     learners = []
     for clf in base_learners:
-        #learners.append(clf)
-        for n_base in [5, 10, 20]:
-            for s_ratio in [0.2, 0.5, 0.7]:
-                learners.append(ConfidenceBagging(clf=clf, n_base=n_base, sampling_ratio=s_ratio,
-                                                  max_features=0.7, weighted=True))
-                for n_decisors in [int(n_base / 2)]:
-                    for mf in [0.5, 0.7]:
-                        learners.append(ConfidenceBagging(clf=clf, n_base=n_base, n_decisors=n_decisors,
-                                                          sampling_ratio=s_ratio, max_features=mf, weighted=True))
+        learners.append(clf)
+        # for n_base in [5, 10, 20]:
+        #     for s_ratio in [0.2, 0.5, 0.7]:
+        #         learners.append(ConfidenceBagging(clf=clf, n_base=n_base, sampling_ratio=s_ratio,
+        #                                           max_features=0.7, weighted=True))
+        #         learners.append(confens.classifiers.ConfidenceBaggingParallel.ConfidenceBagging(clf=clf, n_base=n_base, sampling_ratio=s_ratio,
+        #                                           max_features=0.7, weighted=True))
+        #         for n_decisors in [int(n_base / 2)]:
+        #             for mf in [0.5, 0.7]:
+        #                 learners.append(ConfidenceBagging(clf=clf, n_base=n_base, n_decisors=n_decisors,
+        #                                                   sampling_ratio=s_ratio, max_features=mf, weighted=True))
             # for conf_thr in [0.8, 0.5]:
             #     for s_ratio in [0.3, 0.5]:
             #         for w in [False, True]:
@@ -133,8 +136,8 @@ if __name__ == '__main__':
             # if file is a CSV, it is assumed to be a dataset to be processed
             df = pandas.read_csv(full_name, sep=",")
             df = df.sample(frac=1.0)
-            if len(df.index) > 80000:
-                df = df.iloc[:80000, :]
+            #if len(df.index) > 80000:
+            #    df = df.iloc[:80000, :]
             if VERBOSE:
                 print("\n------------ DATASET INFO -----------------")
                 print("Data Points in Dataset '%s': %d" % (dataset_file, len(df.index)))
@@ -175,7 +178,7 @@ if __name__ == '__main__':
             contamination = 1 - normal_perc if normal_perc is not None else None
             learners = get_learners(contamination)
             i = 1
-            for classifier in learners:
+            for classifier in [DecisionTreeClassifier()]:
 
                 # Getting classifier Name
                 clf_name = classifier.classifier_name() if hasattr(classifier,
@@ -194,9 +197,9 @@ if __name__ == '__main__':
                     classifier.fit(x_train, y_train)
 
                     # Quantifying size of the model
-                    dump(classifier, "clf_dump.bin", compress=9)
-                    size = os.stat("clf_dump.bin").st_size
-                    os.remove("clf_dump.bin")
+                    dump(classifier, "clf_d.bin", compress=9)
+                    size = os.stat("clf_d.bin").st_size
+                    os.remove("clf_d.bin")
 
                     # Computing metrics
                     y_pred = classifier.predict(x_test)
@@ -241,7 +244,7 @@ if __name__ == '__main__':
                               (diversity_dict['SharedFault'] if 'SharedFault' in diversity_dict else 0.0)))
 
                     # Updates CSV file form metrics of experiment
-                    with open("./asd.csv", "a") as myfile:
+                    with open(SCORES_FILE, "a") as myfile:
                         # Prints result of experiment in CSV file
                         myfile.write(full_name + "," + clf_name + "," + str(BINARIZE) + "," +
                                      str(TT_SPLIT) + ',' + str(acc) + "," + str(misc) + "," + str(mcc) + "," +

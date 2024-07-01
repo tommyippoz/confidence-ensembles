@@ -5,7 +5,7 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
      name='confidence-ensembles',
-     version='0.1',
+     version='0.6',
      scripts=[],
      author="Tommaso Zoppi",
      author_email="tommaso.zoppi@unitn.it",
@@ -13,7 +13,7 @@ setuptools.setup(
      long_description=long_description,
      long_description_content_type="text/markdown",
      url="https://github.com/tommyippoz/confidence-ensembles",
-     keywords=['machine learning', 'confidence', 'safety', 'ensamble'],
+     keywords=['machine learning', 'confidence', 'safety', 'ensemble'],
      packages=setuptools.find_packages(),
      classifiers=[
          "Programming Language :: Python :: 3",
