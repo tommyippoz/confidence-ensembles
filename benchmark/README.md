@@ -15,10 +15,12 @@ The plots follow a style similar to that of LAMDA-TALENT's paper, albeit not the
 We cant share the full environment since the benchmarking library is not ours.
 However, these are the steps we followed and files we used to execute the benchmark:
 - clone the repository at https://github.com/qile2000/LAMDA-TALENT
-- setup a Python 3.10 conda-venv containing all libraries needed by the code (see freeze at [a relative link](conda_env_freeze.txt))
+- setup a Python 3.10 conda-venv containing all libraries needed by the code (see venv freeze at [conda_env_freeze](conda_env_freeze.txt))
 - download datasets as per tutorial available at the GitHub above
-- editing files to allow running confidence boosting and confidence bagging ensembles, adding configuration files
-- editing files to allow running classifiers from our study that are not in LAMDA-TALENT (e.g., Decision Tree) to maximise comparisons
-- creating scripts that exercise all classifiers on all classification datasets, saving results as CSV files
-- editing these CSV files as Excel sheets for cleaning up data and plotting
+- editing files (edited files are in the [ZIPfile](additional_files.zip), just uncompress it in the same folder as LAMDA-TALENT and overwrite) to allow running 
+-- confidence boosting and confidence bagging ensembles, adding configuration files
+-- classifiers from our study that are not in LAMDA-TALENT (e.g., Decision Tree) to maximise comparisons
+-- computing additional metrics that were not in the original benchmark (e.g., MCC)
+- creating scripts that exercise all classifiers on all classification datasets, saving results as CSV files (see [here](scripts_for_csv.zip))
+- editing these CSV files as [Excel sheets](xls_summary.zip) for cleaning up data and plotting
 
