@@ -10,6 +10,19 @@ Below we report the results of the benchmark of confidence ensembles against som
 Results are averaged across datasets in LAMDA-TALENT that suit binary and multi-class classification (more than 100).
 The plots follow a style similar to that of LAMDA-TALENT's paper, albeit not the same as there is no script available for plotting: thus we made our best to deliver results with similar pictures.
 
+Accuracy
+
+![Accuracy](acc_plot.png)
+
+Matthews Coefficient
+
+Average F1
+
+
+
+Overall, the best classifiers should be on the left of pictures (low rank = good classifier) and on the bottom (the lower, the faster). Generally speaking, confidence ensembles, and especially ConfBoost, are lower and/or "leftier" than their base estimators alone.
+
+
 ## Benchmark Details
 
 We cant share the full environment since the benchmarking library is not ours.
