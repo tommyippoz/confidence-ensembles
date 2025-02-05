@@ -12,7 +12,7 @@ The plots follow a style similar to that of LAMDA-TALENT's paper, albeit not the
 
 Accuracy
 
-![Accuracy](acc_plot.png)
+![Accuracy](acc.png)
 
 Matthews Coefficient
 
