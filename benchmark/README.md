@@ -10,9 +10,15 @@ Below we report the results of the benchmark of confidence ensembles against som
 Results are averaged across datasets in LAMDA-TALENT that suit binary and multi-class classification (more than 100).
 The plots follow a style similar to that of LAMDA-TALENT's paper, albeit not the same as there is no script available for plotting: thus we made our best to deliver results with similar pictures.
 
-
-
 ## Benchmark Details
 
-These are the steps we followed to execute the benchmark:
+We cant share the full environment since the benchmarking library is not ours.
+However, these are the steps we followed and files we used to execute the benchmark:
+- clone the repository at https://github.com/qile2000/LAMDA-TALENT
+- setup a Python 3.10 conda-venv containing all libraries needed by the code (see freeze at [a relative link](conda_env_freeze.txt))
+- download datasets as per tutorial available at the GitHub above
+- editing files to allow running confidence boosting and confidence bagging ensembles, adding configuration files
+- editing files to allow running classifiers from our study that are not in LAMDA-TALENT (e.g., Decision Tree) to maximise comparisons
+- creating scripts that exercise all classifiers on all classification datasets, saving results as CSV files
+- editing these CSV files as Excel sheets for cleaning up data and plotting
 
