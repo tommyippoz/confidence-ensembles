@@ -42,7 +42,7 @@ https://github.com/tommyippoz/confidence-ensembles/blob/8bbca5446fa912174dd78fbb
 
 ## Credits
 
-Developed @ University of Trento, Povo, Italy, and University of Florence, Florence, Italy
-
 Contributors
 - Tommaso Zoppi
+- Peter Popov
+  
