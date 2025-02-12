@@ -4,7 +4,7 @@ This folder contains the files and the results related to the banchmark of confi
 The framework is available at https://github.com/qile2000/LAMDA-TALENT
 If you are using this framework, please refer to the paper "TALENT: A Tabular Analytics and Learning Toolbox", which is available at https://arxiv.org/abs/2407.04057
 
-## Benchmark Results
+## Benchmark Results 
 
 Below we report the results of the benchmark of confidence ensembles against some algorthms in LAMDA-TALENT.
 Results are averaged across datasets in LAMDA-TALENT that suit binary and multi-class classification (more than 100).
