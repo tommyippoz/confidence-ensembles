@@ -40,7 +40,7 @@ LABEL_NAME = 'multilabel'
 # Name of the 'normal' class in datasets. This will be used only for binary classification (anomaly detection)
 NORMAL_TAG = 'normal'
 # Name of the file in which outputs of the analysis will be saved
-SCORES_FILE = "allmetrics.csv"
+SCORES_FILE = "new_code.csv"
 # Percantage of test data wrt train data
 TT_SPLIT = 0.5
 # True if debug information needs to be shown
@@ -102,12 +102,12 @@ def get_learners(cont_perc):
                                                       max_features=mf, weighted=True))
                     learners.append(ConfidenceBagging(clf=clf, n_base=n_base, n_decisors=int(n_base / 2),
                                                   sampling_ratio=s_ratio, max_features=mf, weighted=True))
-            for conf_thr in [0.9, 0.8]:
+            for boost_thr in [0.9, 0.8]:
                 for s_ratio in [0.3, 0.5]:
                     for w in [False, True]:
                         learners.append(ConfidenceBoosting(clf=clf, n_base=n_base, learning_rate=2,
-                                                           sampling_ratio=s_ratio,
-                                                           conf_thr=conf_thr, weighted=w))
+                                                           sampling_ratio=s_ratio, conf_thr = None,
+                                                           boost_thr=boost_thr, weighted=w))
 
     return learners
 

@@ -1,40 +1,14 @@
 import copy
 
 import numpy
-import pandas
-import pandas as pd
-import pyod
-import sklearn
-from logitboost import LogitBoost
-from pyod.models.abod import ABOD
 from pyod.models.base import BaseDetector
-from pyod.models.cblof import CBLOF
-from pyod.models.cof import COF
-from pyod.models.copod import COPOD
-from pyod.models.ecod import ECOD
-from pyod.models.hbos import HBOS
-from pyod.models.iforest import IForest
-from pyod.models.inne import INNE
-from pyod.models.knn import KNN
-from pyod.models.loda import LODA
-from pyod.models.lof import LOF
-from pyod.models.mcd import MCD
-from pyod.models.ocsvm import OCSVM
-from pyod.models.pca import PCA
 from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.ensemble import RandomForestClassifier, BaggingClassifier, GradientBoostingClassifier
-from sklearn.naive_bayes import GaussianNB, MultinomialNB
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler, LabelEncoder
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import LabelEncoder
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_is_fitted, check_array
 from xgboost import XGBClassifier
 
-from confens.utils.general_utils import current_ms
 # ---------------------------------- SUPPORT METHODS ------------------------------------
 from confens.metrics.EnsembleMetric import get_default
 
