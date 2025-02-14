@@ -194,20 +194,19 @@ if __name__ == '__main__':
                     print('%d/%d Skipping classifier %s, already in the results' % (i, len(learners), clf_name))
 
                 else:
-                    # Training the algorithm to get a model
-                    start_time = current_milli_time()
+                    # Training the algorithm to get a mode
                     if is_classifier(classifier):
+                        start_time = current_milli_time()
                         classifier.fit(x_train, y_train)
+                        train_time = current_milli_time() - start_time
 
                         # Quantifying size of the model
-                        dump(classifier, "clf_d.bin", compress=9)
-                        size = os.stat("clf_d.bin").st_size
-                        os.remove("clf_d.bin")
+                        #dump(classifier, "clf_d.bin", compress=9)
+                        size = 0 #os.stat("clf_d.bin").st_size
+                        #os.remove("clf_d.bin")
 
                         # Computing metrics
-                        a_time = current_milli_time()
                         y_pred = classifier.predict(x_test)
-                        print(str(current_milli_time() - a_time))
                         acc = metrics.accuracy_score(y_test, y_pred)
                         misc = int((1 - acc) * len(y_test))
                         mcc = abs(metrics.matthews_corrcoef(y_test, y_pred))
@@ -216,11 +215,11 @@ if __name__ == '__main__':
                             # Prints metrics for binary classification + train time and model size
                             tn, fp, fn, tp = metrics.confusion_matrix(y_test, y_pred).ravel()
                             print('%d/%d %s\t-> TP: %d, TN: %d, FP: %d, FN: %d, Accuracy: %.3f, MCC: %.3f, train time: %d' %
-                                  (i, len(learners), clf_name, tp, tn, fp, fn, acc, mcc, (current_milli_time() - start_time)))
+                                  (i, len(learners), clf_name, tp, tn, fp, fn, acc, mcc, train_time))
                         else:
                             # Prints just accuracy for multi-class classification problems, no confusion matrix
                             print('%d/%d %s\t-> Accuracy: %.3f, MCC: %.3f, train time: %d' %
-                                  (i, len(learners), clf_name, acc, mcc, current_milli_time() - start_time))
+                                  (i, len(learners), clf_name, acc, mcc, train_time))
 
                         # Updates CSV file form metrics of experiment
                         with open(SCORES_FILE, "a") as myfile:
@@ -229,11 +228,11 @@ if __name__ == '__main__':
                                 myfile.write(full_name + "," + clf_name + "," + str(BINARIZE) + "," +
                                              str(TT_SPLIT) + ',' + str(tp) + ',' + str(fp) + ',' + str(fn) + ',' + str(tn) + ',' +
                                              str(acc) + "," + str(misc) + "," + str(mcc) + "," +
-                                             str(current_milli_time() - start_time) + "," + str(size) + "\n")
+                                             str(train_time) + "," + str(size) + "\n")
                             else:
                                 myfile.write(full_name + "," + clf_name + "," + str(BINARIZE) + "," +
                                              str(TT_SPLIT) + ',' + str(acc) + "," + str(misc) + "," + str(mcc) + "," +
-                                             str(current_milli_time() - start_time) + "," + str(size) + "\n")
+                                             str(train_time) + "," + str(size) + "\n")
 
                 classifier = None
                 i += 1
