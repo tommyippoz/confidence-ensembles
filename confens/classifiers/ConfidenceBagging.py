@@ -3,6 +3,7 @@ import random
 
 from confens.classifiers.Classifier import Classifier
 from confens.classifiers.ConfidenceEnsemble import ConfidenceEnsemble
+from confens.utils.general_utils import get_classifier_name
 
 
 class ConfidenceBagging(ConfidenceEnsemble):
@@ -42,7 +43,7 @@ class ConfidenceBagging(ConfidenceEnsemble):
             if len(features) == 1:
                 sample_x = sample_x.reshape(-1, 1)
             # Train learner
-            learner = copy.deepcopy(self.clf)
+            learner = copy.deepcopy(self.clf_list[learner_index % len(self.clf_list)])
             learner.fit(sample_x, sample_y)
             if hasattr(learner, "X_"):
                 learner.X_ = None
@@ -56,10 +57,7 @@ class ConfidenceBagging(ConfidenceEnsemble):
         Gets classifier name as string
         :return: the classifier name
         """
-        clf_name = self.clf.classifier_name() if isinstance(self.clf, Classifier) else self.clf.__class__.__name__
-        if clf_name == 'Pipeline':
-            keys = list(self.clf.named_steps.keys())
-            clf_name = str(keys) if len(keys) != 2 else str(keys[1]).upper()
+        clf_name = get_classifier_name(self.clf)
         if self.weighted:
             return "ConfidenceBaggerWeighted(" + str(clf_name) + "-" + str(self.n_base) + "-" + \
                    str(self.conf_thr) + "-" + str(self.perc_decisors) + "-" + str(self.n_decisors) + "-" + \

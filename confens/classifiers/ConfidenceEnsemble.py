@@ -1,9 +1,13 @@
 import copy
+from collections.abc import Iterable
 
 import numpy
+from sklearn.base import is_classifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils.multiclass import unique_labels
 
 from confens.classifiers.Classifier import Classifier
+from confens.utils.general_utils import predict_confidence
 
 
 def define_proba_thr(probs, target: float = None, delta: float = 0.01) -> float:
@@ -39,7 +43,7 @@ class ConfidenceEnsemble(Classifier):
                  n_decisors: int = None, weighted: bool = False):
         """
         Constructor
-        :param clf: the algorithm to be used for creating base learners
+        :param clf: the algorithm(s) to be used for creating base learners
         :param n_base: number of base learners (= size of the ensemble)
         :param conf_thr: float value for confidence threshold
         :param perc_decisors: percentage of base learners to be used for prediction
@@ -47,6 +51,22 @@ class ConfidenceEnsemble(Classifier):
         :param weighted: True if prediction has to be computed as a weighted sum of probabilities
         """
         super().__init__(clf)
+        self.clf_list = []
+        if is_classifier(clf):
+            self.clf_list = [clf]
+        elif isinstance(clf, Iterable):
+            self.clf_list = []
+            for clf_item in clf:
+                if is_classifier(clf_item):
+                    self.clf_list.append(clf_item)
+                else:
+                    print("Cant recognize object s a classifier")
+            if len(self.clf_list) == 0:
+                self.clf_list = [RandomForestClassifier(n_estimators=10)]
+                print("clf is not a classifier. Using a 10-tree Random Forest as Base estimator")
+        else:
+            self.clf_list = [RandomForestClassifier(n_estimators=10)]
+            print("clf is not a classifier. Using a 10-tree Random Forest as Base estimator")
         self.weighted = weighted
         if n_base > 1:
             self.n_base = n_base
@@ -186,12 +206,7 @@ class ConfidenceEnsemble(Classifier):
         """
         conf = numpy.zeros(X.shape[0])
         for clf in self.estimators_:
-            if hasattr(clf, 'predict_confidence') and callable(clf.predict_confidence):
-                c_conf = clf.predict_confidence(X)
-            else:
-                y_proba = clf.predict_proba(X)
-                c_conf = numpy.max(y_proba, axis=1)
-            conf += c_conf
+            conf += predict_confidence(clf, X)
         return conf / self.n_base
 
     def get_feature_importances(self):

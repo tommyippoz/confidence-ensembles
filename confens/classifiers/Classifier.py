@@ -1,8 +1,10 @@
 import copy
+from collections.abc import Iterable
 
 import numpy
 from pyod.models.base import BaseDetector
-from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.base import BaseEstimator, ClassifierMixin, is_classifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import unique_labels
@@ -11,13 +13,6 @@ from xgboost import XGBClassifier
 
 # ---------------------------------- SUPPORT METHODS ------------------------------------
 from confens.metrics.EnsembleMetric import get_default
-
-
-def get_classifier_name(clf):
-    if isinstance(clf, Classifier):
-        return clf.classifier_name()
-    else:
-        return clf.__class__.__name__
 
 
 def get_feature_importance(clf):

@@ -15,6 +15,7 @@ from pyod.models.hbos import HBOS
 from pyod.models.iforest import IForest
 from pyod.models.inne import INNE
 from pyod.models.pca import PCA
+from sklearn.base import is_classifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 # Scikit-Learn algorithms
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
@@ -33,6 +34,7 @@ from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting
 # Works only with anomaly detection (no multi-class)
 # ------- GLOBAL VARS -----------
 from confens.metrics.EnsembleMetric import SharedFaultMetric, DisagreementMetric
+from confens.utils.general_utils import get_classifier_name
 
 CSV_FOLDER = "input_folder/test"
 # Name of the column that contains the label in the tabular (CSV) dataset
@@ -40,14 +42,14 @@ LABEL_NAME = 'multilabel'
 # Name of the 'normal' class in datasets. This will be used only for binary classification (anomaly detection)
 NORMAL_TAG = 'normal'
 # Name of the file in which outputs of the analysis will be saved
-SCORES_FILE = "new_code.csv"
+SCORES_FILE = "new_code_NoBinary.csv"
 # Percantage of test data wrt train data
 TT_SPLIT = 0.5
 # True if debug information needs to be shown
 VERBOSE = True
 # True if we want to conduct anomaly detection.
 # This transforms multi-class labels into binary labels (rule: normal class vs others)
-BINARIZE = True
+BINARIZE = False
 
 # Set random seed for reproducibility
 random.seed(42)
@@ -72,42 +74,49 @@ def get_learners(cont_perc):
     :return: the list of classifiers to be trained
     """
     base_learners = [
-        XGB(n_estimators=30),
-        DecisionTreeClassifier(),
-        Pipeline([("norm", MinMaxScaler()), ("gnb", GaussianNB())]),
-        RandomForestClassifier(n_estimators=30),
-        LinearDiscriminantAnalysis(),
-        LogisticRegression(),
-        ExtraTreesClassifier(n_estimators=30),
-        LogitBoost(n_estimators=30)
+        [RandomForestClassifier(n_estimators=10), XGB(n_estimators=10)],
+        [DecisionTreeClassifier(), RandomForestClassifier(n_estimators=10), XGB(n_estimators=10)],
+        [LogitBoost(n_estimators=10), RandomForestClassifier(n_estimators=10), XGB(n_estimators=10)],
+        XGB(n_estimators=100),
+        # DecisionTreeClassifier(),
+        # Pipeline([("norm", MinMaxScaler()), ("gnb", GaussianNB())]),
+        RandomForestClassifier(n_estimators=100),
+        # LinearDiscriminantAnalysis(),
+        # LogisticRegression(),
+        # ExtraTreesClassifier(n_estimators=30),
+        LogitBoost(n_estimators=100)
     ]
 
     # If binary classification, we can use unsupervised classifiers also
-    cont_alg = cont_perc if cont_perc < 0.5 else 0.5
-    base_learners.extend([
-        UnsupervisedClassifier(PCA(contamination=cont_alg)),
-        UnsupervisedClassifier(INNE(contamination=cont_alg, n_estimators=10)),
-        UnsupervisedClassifier(IForest(contamination=cont_alg, n_estimators=10)),
-        UnsupervisedClassifier(HBOS(contamination=cont_alg, n_bins=30)),
-        UnsupervisedClassifier(CBLOF(contamination=cont_alg, alpha=0.75, beta=3, n_jobs=-1)),
-    ])
+    if BINARIZE:
+        cont_alg = cont_perc if cont_perc < 0.5 else 0.5
+        base_learners.extend([
+            [UnsupervisedClassifier(PCA(contamination=cont_alg)), UnsupervisedClassifier(CBLOF(contamination=cont_alg, alpha=0.75, beta=3, n_jobs=-1))],
+            [UnsupervisedClassifier(PCA(contamination=cont_alg)),
+             UnsupervisedClassifier(CBLOF(contamination=cont_alg, alpha=0.75, beta=3, n_jobs=-1)), UnsupervisedClassifier(PCA(contamination=cont_alg))],
+            UnsupervisedClassifier(PCA(contamination=cont_alg)),
+            UnsupervisedClassifier(INNE(contamination=cont_alg, n_estimators=10)),
+            UnsupervisedClassifier(IForest(contamination=cont_alg, n_estimators=10)),
+            UnsupervisedClassifier(HBOS(contamination=cont_alg, n_bins=30)),
+            UnsupervisedClassifier(CBLOF(contamination=cont_alg, alpha=0.75, beta=3, n_jobs=-1)),
+        ])
 
     learners = []
     for clf in base_learners:
         learners.append(clf)
-        for n_base in [5, 10]:
+        for n_base in [5, 10, 20]:
             for s_ratio in [0.3, 0.5]:
                 for mf in [0.7]:
                     learners.append(ConfidenceBagging(clf=clf, n_base=n_base, sampling_ratio=s_ratio,
                                                       max_features=mf, weighted=True))
                     learners.append(ConfidenceBagging(clf=clf, n_base=n_base, n_decisors=int(n_base / 2),
-                                                  sampling_ratio=s_ratio, max_features=mf, weighted=True))
+                                                      sampling_ratio=s_ratio, max_features=mf, weighted=True))
             for boost_thr in [0.9, 0.8]:
                 for s_ratio in [0.3, 0.5]:
                     for w in [False, True]:
                         learners.append(ConfidenceBoosting(clf=clf, n_base=n_base, learning_rate=2,
-                                                           sampling_ratio=s_ratio, conf_thr = None,
-                                                           boost_thr=boost_thr, weighted=w))
+                                                           sampling_ratio=s_ratio,
+                                                           relative_boost_thr=boost_thr, weighted=w))
 
     return learners
 
@@ -178,12 +187,7 @@ if __name__ == '__main__':
             for classifier in learners:
 
                 # Getting classifier Name
-                clf_name = classifier.classifier_name() if hasattr(classifier,
-                                                                   'classifier_name') else classifier.__class__.__name__
-                if clf_name == 'Pipeline':
-                    keys = list(classifier.named_steps.keys())
-                    clf_name = str(keys) if len(keys) != 2 else str(keys[1]).upper()
-
+                clf_name = get_classifier_name(classifier)
                 if existing_exps is not None and (((existing_exps['dataset_tag'] == full_name) &
                                                    (existing_exps['clf'] == clf_name)).any()):
                     print('%d/%d Skipping classifier %s, already in the results' % (i, len(learners), clf_name))
@@ -191,41 +195,42 @@ if __name__ == '__main__':
                 else:
                     # Training the algorithm to get a model
                     start_time = current_milli_time()
-                    classifier.fit(x_train, y_train)
+                    if is_classifier(classifier):
+                        classifier.fit(x_train, y_train)
 
-                    # Quantifying size of the model
-                    dump(classifier, "clf_d.bin", compress=9)
-                    size = os.stat("clf_d.bin").st_size
-                    os.remove("clf_d.bin")
+                        # Quantifying size of the model
+                        dump(classifier, "clf_d.bin", compress=9)
+                        size = os.stat("clf_d.bin").st_size
+                        os.remove("clf_d.bin")
 
-                    # Computing metrics
-                    y_pred = classifier.predict(x_test)
-                    acc = metrics.accuracy_score(y_test, y_pred)
-                    misc = int((1 - acc) * len(y_test))
-                    mcc = abs(metrics.matthews_corrcoef(y_test, y_pred))
+                        # Computing metrics
+                        y_pred = classifier.predict(x_test)
+                        acc = metrics.accuracy_score(y_test, y_pred)
+                        misc = int((1 - acc) * len(y_test))
+                        mcc = abs(metrics.matthews_corrcoef(y_test, y_pred))
 
-                    if BINARIZE:
-                        # Prints metrics for binary classification + train time and model size
-                        tn, fp, fn, tp = metrics.confusion_matrix(y_test, y_pred).ravel()
-                        print('%d/%d %s\t-> TP: %d, TN: %d, FP: %d, FN: %d, Accuracy: %.3f, MCC: %.3f, train time: %d' %
-                              (i, len(learners), clf_name, tp, tn, fp, fn, acc, mcc, (current_milli_time() - start_time)))
-                    else:
-                        # Prints just accuracy for multi-class classification problems, no confusion matrix
-                        print('%d/%d %s\t-> Accuracy: %.3f, MCC: %.3f, train time: %d' %
-                              (i, len(learners), clf_name, acc, mcc, current_milli_time() - start_time))
-
-                    # Updates CSV file form metrics of experiment
-                    with open(SCORES_FILE, "a") as myfile:
-                        # Prints result of experiment in CSV file
                         if BINARIZE:
-                            myfile.write(full_name + "," + clf_name + "," + str(BINARIZE) + "," +
-                                         str(TT_SPLIT) + ',' + str(tp) + ',' + str(fp) + ',' + str(fn) + ',' + str(tn) + ',' +
-                                         str(acc) + "," + str(misc) + "," + str(mcc) + "," +
-                                         str(current_milli_time() - start_time) + "," + str(size) + "\n")
+                            # Prints metrics for binary classification + train time and model size
+                            tn, fp, fn, tp = metrics.confusion_matrix(y_test, y_pred).ravel()
+                            print('%d/%d %s\t-> TP: %d, TN: %d, FP: %d, FN: %d, Accuracy: %.3f, MCC: %.3f, train time: %d' %
+                                  (i, len(learners), clf_name, tp, tn, fp, fn, acc, mcc, (current_milli_time() - start_time)))
                         else:
-                            myfile.write(full_name + "," + clf_name + "," + str(BINARIZE) + "," +
-                                         str(TT_SPLIT) + ',' + str(acc) + "," + str(misc) + "," + str(mcc) + "," +
-                                         str(current_milli_time() - start_time) + "," + str(size) + "\n")
+                            # Prints just accuracy for multi-class classification problems, no confusion matrix
+                            print('%d/%d %s\t-> Accuracy: %.3f, MCC: %.3f, train time: %d' %
+                                  (i, len(learners), clf_name, acc, mcc, current_milli_time() - start_time))
+
+                        # Updates CSV file form metrics of experiment
+                        with open(SCORES_FILE, "a") as myfile:
+                            # Prints result of experiment in CSV file
+                            if BINARIZE:
+                                myfile.write(full_name + "," + clf_name + "," + str(BINARIZE) + "," +
+                                             str(TT_SPLIT) + ',' + str(tp) + ',' + str(fp) + ',' + str(fn) + ',' + str(tn) + ',' +
+                                             str(acc) + "," + str(misc) + "," + str(mcc) + "," +
+                                             str(current_milli_time() - start_time) + "," + str(size) + "\n")
+                            else:
+                                myfile.write(full_name + "," + clf_name + "," + str(BINARIZE) + "," +
+                                             str(TT_SPLIT) + ',' + str(acc) + "," + str(misc) + "," + str(mcc) + "," +
+                                             str(current_milli_time() - start_time) + "," + str(size) + "\n")
 
                 classifier = None
                 i += 1
