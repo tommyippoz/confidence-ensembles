@@ -42,7 +42,7 @@ LABEL_NAME = 'multilabel'
 # Name of the 'normal' class in datasets. This will be used only for binary classification (anomaly detection)
 NORMAL_TAG = 'normal'
 # Name of the file in which outputs of the analysis will be saved
-SCORES_FILE = "new_code_NoBinary.csv"
+SCORES_FILE = "a.csv"
 # Percantage of test data wrt train data
 TT_SPLIT = 0.5
 # True if debug information needs to be shown
@@ -107,10 +107,11 @@ def get_learners(cont_perc):
         for n_base in [5, 10, 20]:
             for s_ratio in [0.3, 0.5]:
                 for mf in [0.7]:
-                    learners.append(ConfidenceBagging(clf=clf, n_base=n_base, sampling_ratio=s_ratio,
-                                                      max_features=mf, weighted=True))
                     learners.append(ConfidenceBagging(clf=clf, n_base=n_base, n_decisors=int(n_base / 2),
                                                       sampling_ratio=s_ratio, max_features=mf, weighted=True))
+                    learners.append(ConfidenceBagging(clf=clf, n_base=n_base, sampling_ratio=s_ratio,
+                                                      max_features=mf, weighted=True))
+
             for boost_thr in [0.9, 0.8]:
                 for s_ratio in [0.3, 0.5]:
                     for w in [False, True]:
@@ -204,7 +205,9 @@ if __name__ == '__main__':
                         os.remove("clf_d.bin")
 
                         # Computing metrics
+                        a_time = current_milli_time()
                         y_pred = classifier.predict(x_test)
+                        print(str(current_milli_time() - a_time))
                         acc = metrics.accuracy_score(y_test, y_pred)
                         misc = int((1 - acc) * len(y_test))
                         mcc = abs(metrics.matthews_corrcoef(y_test, y_pred))

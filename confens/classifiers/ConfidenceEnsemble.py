@@ -154,14 +154,19 @@ class ConfidenceEnsemble(Classifier):
                 conf_array = conf_array.transpose()
                 all_conf = -numpy.sort(-conf_array, axis=1)
                 conf_thrs = all_conf[:, self.n_decisors - 1]
-                for i in range(0, X.shape[0]):
-                    proba[i] = numpy.average(proba_array[numpy.where(conf_array[i] >= conf_thrs[i]), i, :], axis=1)
+                mask = numpy.asarray(conf_array >= conf_thrs.reshape(-1, 1)).T
+                masked_probas = numpy.asarray([numpy.multiply(proba_array[:, :, i], mask) for i in range(0, len(self.classes_))])
+                p_sum = numpy.sum(masked_probas, axis=1)
+                proba = (p_sum/numpy.sum(p_sum, axis=0)).T
         else:
             # Option 2: conf_thr is not None, neither n_decisors nor perc_decisors are set
             # Thus, base-learners contribute if they are confident at least 'conf_thr'
             conf_array = conf_array.transpose()
-            for i in range(0, X.shape[0]):
-                proba[i] = numpy.average(proba_array[numpy.where(conf_array[i] >= self.conf_thr), i, :], axis=1)
+            mask = numpy.asarray(conf_array >= self.conf_thr).T
+            masked_probas = numpy.asarray(
+                [numpy.multiply(proba_array[:, :, i], mask) for i in range(0, len(self.classes_))])
+            p_sum = numpy.sum(masked_probas, axis=1)
+            proba = (p_sum / numpy.sum(p_sum, axis=0)).T
 
         # Final averaged Result
         return proba
