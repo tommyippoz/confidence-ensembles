@@ -2,11 +2,15 @@ import copy
 from collections.abc import Iterable
 
 import numpy
-from sklearn.base import is_classifier
+from pyod.models.base import BaseDetector
+from sklearn.base import is_classifier, BaseEstimator, ClassifierMixin
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.utils import check_X_y, check_array
 from sklearn.utils.multiclass import unique_labels
+from sklearn.utils.validation import check_is_fitted
 
 from confens.classifiers.Classifier import Classifier
+from confens.metrics.EnsembleMetric import get_default
 from confens.utils.general_utils import predict_confidence
 
 
@@ -34,7 +38,7 @@ def define_proba_thr(probs, target: float = None, delta: float = 0.01) -> float:
     return p_thr
 
 
-class ConfidenceEnsemble(Classifier):
+class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
     """
     Class for creating confidence ensembles
     """
@@ -50,14 +54,31 @@ class ConfidenceEnsemble(Classifier):
         :param n_decisors: number of base learners to be used for prediction
         :param weighted: True if prediction has to be computed as a weighted sum of probabilities
         """
-        super().__init__(clf)
+        self.clf = clf
+        self._estimator_type = "classifier"
+        self.feature_importances_ = None
+        self.X_ = None
+        self.y_ = None
         self.clf_list = []
-        if is_classifier(clf):
-            self.clf_list = [clf]
-        elif isinstance(clf, Iterable):
+        self.input_val = False
+        self.weighted = weighted
+        self.proba_thr = None
+        self.conf_thr = conf_thr
+        self.contamination = clf.contamination if hasattr(clf, 'contamination') else None
+        self.perc_decisors = perc_decisors
+        self.n_decisors = n_decisors
+        self.n_base = n_base
+        self.estimators_ = []
+
+    def validate_input(self):
+        # Setting up classifiers to create base-learners
+        self.clf = copy.deepcopy(self.clf) if self.clf is not None else None
+        if is_classifier(self.clf) or isinstance(self.clf, BaseDetector):
+            self.clf_list = [self.clf]
+        elif isinstance(self.clf, Iterable):
             self.clf_list = []
-            for clf_item in clf:
-                if is_classifier(clf_item):
+            for clf_item in self.clf:
+                if is_classifier(clf_item) or isinstance(self.clf, BaseDetector):
                     self.clf_list.append(clf_item)
                 else:
                     print("Cant recognize object s a classifier")
@@ -67,29 +88,26 @@ class ConfidenceEnsemble(Classifier):
         else:
             self.clf_list = [RandomForestClassifier(n_estimators=10)]
             print("clf is not a classifier. Using a 10-tree Random Forest as Base estimator")
-        self.weighted = weighted
-        if n_base > 1:
-            self.n_base = n_base
-        else:
+
+        # N base estimators
+        if self.n_base is None or self.n_base <= 1:
             print("Ensembles have to be at least 2")
             self.n_base = 10
 
-        self.proba_thr = None
-        self.conf_thr = conf_thr
-        self.contamination = clf.contamination if hasattr(clf, 'contamination') else None
-
-        self.perc_decisors = perc_decisors
-        if perc_decisors is not None and 0 < perc_decisors <= 1:
-            if n_decisors is not None and 0 < n_decisors <= self.n_base:
+        # Decisors
+        if self.perc_decisors is not None and 0 < self.perc_decisors <= 1:
+            if self.n_decisors is not None and 0 < self.n_decisors <= self.n_base:
                 print('Both perc_decisors and n_decisors are specified, prioritizing perc_decisors')
-            self.n_decisors = int(self.n_base * perc_decisors) if int(self.n_base * perc_decisors) > 0 else 1
-        elif n_decisors is not None and 0 < n_decisors <= self.n_base:
-            self.n_decisors = n_decisors
+            self.n_decisors = int(self.n_base * self.perc_decisors) if int(self.n_base * self.perc_decisors) > 0 else 1
+        elif self.n_decisors is not None and 0 < self.n_decisors <= self.n_base:
+            self.n_decisors = self.n_decisors
         elif self.conf_thr is None:
             self.n_decisors = self.n_base
         else:
             self.n_decisors = None
-        self.estimators_ = []
+
+        # END
+        self.input_val = True
 
     def fit(self, X, y=None):
         """
@@ -97,7 +115,13 @@ class ConfidenceEnsemble(Classifier):
         :param y: labels of the train set (optional, not required for unsupervised learning)
         :param X: train set
         """
+        if y is not None:
+            X, y = check_X_y(X, y)
+        else:
+            X = check_array(X)
         self.classes_ = unique_labels(y) if y is not None else [0, 1]
+        if not self.input_val:
+            self.validate_input()
         self.fit_ensemble(X, y)
         self.proba_thr = define_proba_thr(target=self.contamination, probs=self.predict_proba(X)) \
             if self.contamination is not None else 0.5
@@ -105,6 +129,7 @@ class ConfidenceEnsemble(Classifier):
         # Compliance with SKLEARN and PYOD
         self.X_ = X[[0, 1], :]
         self.y_ = y
+        self.decision_scores_ = self.decision_function(X)
         self.feature_importances_ = self.compute_feature_importances()
 
     def fit_ensemble(self, X, y=None):
@@ -116,6 +141,11 @@ class ConfidenceEnsemble(Classifier):
         pass
 
     def predict_proba(self, X):
+        """
+        Function to assign probabilities to each class given a test set
+        :param X: the test set
+        :return: a numpy matrix
+        """
         # Scoring probabilities and confidence
         proba_array = []
         conf_array = []
@@ -134,7 +164,6 @@ class ConfidenceEnsemble(Classifier):
         conf_array = numpy.asarray(conf_array)
 
         # Compute final probabilities
-        proba = numpy.zeros(proba_array[0].shape)
         # Adjust probabilities with confidence if weighted
         if self.weighted:
             for i in range(0, X.shape[0]):
@@ -237,3 +266,79 @@ class ConfidenceEnsemble(Classifier):
             return 1 * (proba[:, 0] < self.proba_thr)
         else:
             return self.classes_[numpy.argmax(proba, axis=1)]
+
+    def decision_function(self, X):
+        """
+        Compatibility with PYOD
+        :param X: the test set
+        :return: a numpy array, or None
+        """
+        if X is None:
+            return None
+        X = check_array(X)
+        probas = self.predict_proba(X)
+        if probas.shape[1] >= 2:
+            a = probas[:, 1] / probas[:, 0]
+            return a
+        else:
+            return numpy.zeros(X.shape[0])
+
+    def compute_feature_importances(self):
+        """
+        Outputs feature ranking in building a Classifier
+        :return: ndarray containing feature ranks
+        """
+        if hasattr(self.clf, 'feature_importances_'):
+            return self.clf.feature_importances_
+        elif hasattr(self.clf, 'coef_'):
+            return numpy.sum(numpy.absolute(self.clf.coef_), axis=0)
+        return []
+
+    def is_unsupervised(self):
+        """
+        true if the classifier is unsupervised
+        :return: boolean
+        """
+        return hasattr(self, 'classes_') and numpy.array_equal(self.classes_, [0, 1])
+
+    def classifier_name(self):
+        """
+        Returns the name of the classifier (as string)
+        """
+        return self.clf.__class__.__name__
+
+    def get_diversity(self, X, y, metrics=None):
+        """
+        Returns diversity metrics. Works only with ensembles.
+        :param metrics: name of the metrics to output (list of Metric objects)
+        :param X: test set
+        :param y: labels of the test set
+        :return: diversity metrics
+        """
+        X = check_array(X)
+        predictions = []
+        check_is_fitted(self)
+        if hasattr(self, "estimators_"):
+            # If it is an ensemble and if it is trained
+            for baselearner in self.estimators_:
+                predictions.append(baselearner.predict(X))
+            predictions = numpy.column_stack(predictions)
+        elif self.clf is not None:
+            # If it wraps an ensemble
+            check_is_fitted(self.clf)
+            if hasattr(self.clf, "estimators_"):
+                # If it is an ensemble and if it is trained
+                for baselearner in self.clf.estimators_:
+                    predictions.append(baselearner.predict(X))
+                predictions = numpy.column_stack(predictions)
+        if predictions is not None and len(predictions) > 0:
+            # Compute metrics
+            metric_scores = {}
+            if metrics is None or not isinstance(metrics, list):
+                metrics = get_default()
+            for metric in metrics:
+                metric_scores[metric.get_name()] = metric.compute_diversity(predictions, y)
+            return metric_scores
+        else:
+            # If it is not an ensemble
+            return {}

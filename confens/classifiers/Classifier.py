@@ -111,6 +111,22 @@ class Classifier(BaseEstimator, ClassifierMixin):
 
         return self.clf.predict_proba(X)
 
+    def decision_function(self, X):
+        """
+        Compatibility with PYOD
+        :param X: the test set
+        :return: a numpy array, or None
+        """
+        if X is None:
+            return None
+        X = check_array(X)
+        probas = self.predict_proba(X)
+        if probas.shape[1] >= 2:
+            a = probas[:, 1] / probas[:, 0]
+            return a
+        else:
+            return numpy.zeros(X.shape[0])
+
     def predict_confidence(self, X):
         """
         Method to compute confidence in the predicted class
@@ -142,14 +158,6 @@ class Classifier(BaseEstimator, ClassifierMixin):
         Returns the name of the classifier (as string)
         """
         return self.clf.__class__.__name__
-
-    def get_params(self, deep=True):
-        """
-        Compliance with scikit-learn
-        :param deep: see scikit-learn
-        :return: see scikit-learn
-        """
-        return {'clf': self.clf}
 
     def get_diversity(self, X, y, metrics=None):
         """

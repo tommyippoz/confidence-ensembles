@@ -6,6 +6,7 @@ from collections.abc import Iterable
 
 import numpy
 import numpy as np
+from pyod.models.base import BaseDetector
 from sklearn.base import is_classifier
 
 
@@ -124,7 +125,7 @@ def get_classifier_name(clf_object):
     """
     clf_name = ""
     if clf_object is not None:
-        if is_classifier(clf_object):
+        if is_classifier(clf_object) or isinstance(clf_object, BaseDetector):
             clf_name = get_single_classifier_name(clf_object)
         elif isinstance(clf_object, Iterable):
             for clf_item in clf_object:
@@ -159,7 +160,7 @@ def predict_confidence(clf, X):
     :return: array of confidence scores
     """
     c_conf = None
-    if is_classifier(clf):
+    if is_classifier(clf) or isinstance(clf, BaseDetector):
         if hasattr(clf, 'predict_confidence') and callable(clf.predict_confidence):
             c_conf = clf.predict_confidence(X)
         else:

@@ -74,17 +74,18 @@ def get_learners(cont_perc):
     :return: the list of classifiers to be trained
     """
     base_learners = [
+        [LinearDiscriminantAnalysis(), Pipeline([("norm", MinMaxScaler()), ("gnb", GaussianNB())])],
         [RandomForestClassifier(n_estimators=10), XGB(n_estimators=10)],
         [DecisionTreeClassifier(), RandomForestClassifier(n_estimators=10), XGB(n_estimators=10)],
         [LogitBoost(n_estimators=10), RandomForestClassifier(n_estimators=10), XGB(n_estimators=10)],
         XGB(n_estimators=100),
-        # DecisionTreeClassifier(),
-        # Pipeline([("norm", MinMaxScaler()), ("gnb", GaussianNB())]),
+        DecisionTreeClassifier(),
+        Pipeline([("norm", MinMaxScaler()), ("gnb", GaussianNB())]),
         RandomForestClassifier(n_estimators=100),
-        # LinearDiscriminantAnalysis(),
+        LinearDiscriminantAnalysis(),
         # LogisticRegression(),
         # ExtraTreesClassifier(n_estimators=30),
-        LogitBoost(n_estimators=100)
+        #LogitBoost(n_estimators=100)
     ]
 
     # If binary classification, we can use unsupervised classifiers also
@@ -206,7 +207,9 @@ if __name__ == '__main__':
                         #os.remove("clf_d.bin")
 
                         # Computing metrics
+                        #start_time = current_milli_time()
                         y_pred = classifier.predict(x_test)
+                        #print(current_milli_time() - start_time)
                         acc = metrics.accuracy_score(y_test, y_pred)
                         misc = int((1 - acc) * len(y_test))
                         mcc = abs(metrics.matthews_corrcoef(y_test, y_pred))
