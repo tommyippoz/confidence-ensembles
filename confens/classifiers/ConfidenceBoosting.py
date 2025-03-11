@@ -2,9 +2,8 @@ import copy
 
 import numpy
 
-from confens.classifiers.Classifier import Classifier
 from confens.classifiers.ConfidenceEnsemble import ConfidenceEnsemble
-from confens.utils.general_utils import get_classifier_name, predict_confidence
+from confens.utils.classifier_utils import get_classifier_name, predict_confidence
 
 
 def define_conf_thr(confs, target: float = None, delta: float = 0.01) -> float:

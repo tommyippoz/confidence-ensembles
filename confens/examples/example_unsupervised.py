@@ -9,7 +9,6 @@ import sklearn.model_selection as ms
 from pyod.models.pca import PCA
 
 # Name of the folder in which look for tabular (CSV) datasets
-from confens.classifiers.Classifier import UnsupervisedClassifier
 from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting
 
 # Scikit-Learn algorithms

@@ -1,10 +1,8 @@
 import copy
-from collections.abc import Iterable
 
 import numpy
 from pyod.models.base import BaseDetector
-from sklearn.base import BaseEstimator, ClassifierMixin, is_classifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import unique_labels

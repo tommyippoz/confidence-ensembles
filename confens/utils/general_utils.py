@@ -2,12 +2,8 @@ import configparser
 import os
 import shutil
 import time
-from collections.abc import Iterable
 
-import numpy
 import numpy as np
-from pyod.models.base import BaseDetector
-from sklearn.base import is_classifier
 
 
 def load_config(file_config):
@@ -115,55 +111,3 @@ def clear_folder(folder_path):
                 shutil.rmtree(file_path)
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
-
-
-def get_classifier_name(clf_object):
-    """
-    Gets a string representing the classifier name
-    :param clf_object: the object meant to be a classifier
-    :return: a string
-    """
-    clf_name = ""
-    if clf_object is not None:
-        if is_classifier(clf_object) or isinstance(clf_object, BaseDetector):
-            clf_name = get_single_classifier_name(clf_object)
-        elif isinstance(clf_object, Iterable):
-            for clf_item in clf_object:
-                clf_name = clf_name + (get_single_classifier_name(clf_item) if is_classifier(clf_item) else "?") + "@"
-            clf_name = clf_name[0:-1]
-        else:
-            clf_name = str(clf_object)
-    return clf_name
-
-
-def get_single_classifier_name(clf_object):
-    """
-    Gets a string representing the classifier name, assuming the object contains a single classifier
-    :param clf_object: the object meant to be a classifier
-    :return: a string
-    """
-    if hasattr(clf_object, "classifier_name") and callable(clf_object.classifier_name):
-        clf_name = clf_object.classifier_name()
-        if clf_name == 'Pipeline':
-            keys = list(clf_object.named_steps.keys())
-            clf_name = str(keys) if len(keys) != 2 else str(keys[1]).upper()
-    else:
-        clf_name = clf_object.__class__.__name__
-    return clf_name
-
-
-def predict_confidence(clf, X):
-    """
-    Method to compute the confidence in predictions of a classifier
-    :param clf: the classifier
-    :param X: the test set
-    :return: array of confidence scores
-    """
-    c_conf = None
-    if is_classifier(clf) or isinstance(clf, BaseDetector):
-        if hasattr(clf, 'predict_confidence') and callable(clf.predict_confidence):
-            c_conf = clf.predict_confidence(X)
-        else:
-            y_proba = clf.predict_proba(X)
-            c_conf = numpy.max(y_proba, axis=1)
-    return c_conf

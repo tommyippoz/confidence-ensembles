@@ -9,9 +9,8 @@ from sklearn.utils import check_X_y, check_array
 from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_is_fitted
 
-from confens.classifiers.Classifier import Classifier
 from confens.metrics.EnsembleMetric import get_default
-from confens.utils.general_utils import predict_confidence
+from confens.utils.classifier_utils import predict_proba, predict_confidence
 
 
 def define_proba_thr(probs, target: float = None, delta: float = 0.01) -> float:
@@ -119,11 +118,11 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
             X, y = check_X_y(X, y)
         else:
             X = check_array(X)
-        self.classes_ = unique_labels(y) if y is not None else [0, 1]
+        self.classes_ = unique_labels(y) if y is not None else numpy.array([0, 1])
         if not self.input_val:
             self.validate_input()
         self.fit_ensemble(X, y)
-        self.proba_thr = define_proba_thr(target=self.contamination, probs=self.predict_proba(X)) \
+        self.proba_thr = define_proba_thr(target=self.contamination, probs=predict_proba(self, X)) \
             if self.contamination is not None else 0.5
 
         # Compliance with SKLEARN and PYOD
@@ -152,10 +151,10 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         for i in range(0, self.n_base):
             if hasattr(self, "feature_sets"):
                 # ConfBag, each estimator uses a subset of features
-                predictions = self.estimators_[i].predict_proba(X[:, self.feature_sets[i]])
+                predictions = predict_proba(self.estimators_[i], X[:, self.feature_sets[i]])
             else:
                 # ConfBoost, all estimators use all features
-                predictions = self.estimators_[i].predict_proba(X)
+                predictions = predict_proba(self.estimators_[i], X)
             proba_array.append(predictions)
             conf_array.append(numpy.max(predictions, axis=1))
         # 3d matrix (clf, row, probability for class)
@@ -261,11 +260,8 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         :param X: the test set
         :return: array of predicted class
         """
-        proba = self.predict_proba(X)
-        if self.is_unsupervised():
-            return 1 * (proba[:, 0] < self.proba_thr)
-        else:
-            return self.classes_[numpy.argmax(proba, axis=1)]
+        proba = predict_proba(self, X)
+        return self.classes_[numpy.argmax(proba, axis=1)]
 
     def decision_function(self, X):
         """
@@ -276,10 +272,9 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         if X is None:
             return None
         X = check_array(X)
-        probas = self.predict_proba(X)
+        probas = predict_proba(self, X)
         if probas.shape[1] >= 2:
-            a = probas[:, 1] / probas[:, 0]
-            return a
+            return numpy.sum(probas[:, 1:], axis=1)
         else:
             return numpy.zeros(X.shape[0])
 

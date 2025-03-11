@@ -7,19 +7,19 @@ import sklearn.metrics as metrics
 import sklearn.model_selection as ms
 # Used to save a classifier and measure its size in KB
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-
 # Name of the folder in which look for tabular (CSV) datasets
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import TunedThresholdClassifierCV, GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
 
+from confens.classifiers.ConfidenceBagging import ConfidenceBagging
 from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting
-
 # Scikit-Learn algorithms
 # The PYOD library contains implementations of unsupervised classifiers.
 # Works only with anomaly detection (no multi-class)
 # ------- GLOBAL VARS -----------
-from confens.utils.general_utils import get_classifier_name, current_ms
+from confens.utils.classifier_utils import get_classifier_name
+from confens.utils.general_utils import current_ms
 
 CSV_FILE = "sample_data/sample_data_arancino.csv"
 # Name of the column that contains the label in the tabular (CSV) dataset
@@ -38,6 +38,9 @@ numpy.random.seed(42)
 # ----------------------- MAIN ROUTINE ---------------------
 # This files shows an example of confidence ensembles for supervised learning.
 # Can be used as is, just change the details to load the dataset
+
+def get_base():
+    return RandomForestClassifier(n_estimators=10)
 
 if __name__ == '__main__':
 
@@ -58,13 +61,14 @@ if __name__ == '__main__':
     # Creating classifiers
     cboost_parameters = {'n_base': [5, 10, 20], 'perc_decisors': [0.3, 0.5, 0.8, 1.0]}
     classifiers = [
-        LinearDiscriminantAnalysis(),
-        TunedThresholdClassifierCV(estimator=LinearDiscriminantAnalysis()),
-        ConfidenceBoosting(clf=LinearDiscriminantAnalysis()),
-        TunedThresholdClassifierCV(estimator=ConfidenceBoosting(clf=LinearDiscriminantAnalysis())),
-        CalibratedClassifierCV(estimator=ConfidenceBoosting(clf=LinearDiscriminantAnalysis()), method='sigmoid'),
-        CalibratedClassifierCV(estimator=ConfidenceBoosting(clf=LinearDiscriminantAnalysis()), method='isotonic'),
-        GridSearchCV(estimator=ConfidenceBoosting(clf=LinearDiscriminantAnalysis()), param_grid=cboost_parameters)
+        get_base(),
+        TunedThresholdClassifierCV(estimator=get_base()),
+        ConfidenceBagging(clf=get_base()),
+        ConfidenceBoosting(clf=get_base()),
+        TunedThresholdClassifierCV(estimator=ConfidenceBoosting(clf=get_base())),
+        CalibratedClassifierCV(estimator=ConfidenceBoosting(clf=get_base()), method='sigmoid'),
+        CalibratedClassifierCV(estimator=ConfidenceBoosting(clf=get_base()), method='isotonic'),
+        GridSearchCV(estimator=ConfidenceBoosting(clf=get_base()), param_grid=cboost_parameters)
     ]
 
     for classifier in classifiers:

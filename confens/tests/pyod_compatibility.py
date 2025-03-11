@@ -9,16 +9,12 @@ import sklearn.model_selection as ms
 from pyod.models.copod import COPOD
 from pyod.models.feature_bagging import FeatureBagging
 from pyod.models.hbos import HBOS
-from pyod.models.inne import INNE
 from pyod.models.pca import PCA
-
 # Name of the folder in which look for tabular (CSV) datasets
 from pyod.models.suod import SUOD
 
-from confens.classifiers.Classifier import UnsupervisedClassifier
 from confens.classifiers.ConfidenceBagging import ConfidenceBagging
 from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting
-
 # Scikit-Learn algorithms
 # The PYOD library contains implementations of unsupervised classifiers.
 # Works only with anomaly detection (no multi-class)
@@ -60,9 +56,9 @@ if __name__ == '__main__':
                                                            test_size=TT_SPLIT, shuffle=True)
     # Creating classifiers
     # Note that unsupervised classifiers in PYOD require a contamination
-    classifiers = [COPOD(contamination=an_perc),
-                   ConfidenceBagging(clf=COPOD(contamination=an_perc)),
-                   ConfidenceBoosting(clf=COPOD(contamination=an_perc)),
+    classifiers = [PCA(contamination=an_perc),
+                   ConfidenceBagging(clf=PCA(contamination=an_perc)),
+                   ConfidenceBoosting(clf=PCA(contamination=an_perc)),
                    FeatureBagging(contamination=an_perc, base_estimator=ConfidenceBagging(clf=HBOS(contamination=an_perc)), n_estimators=5),
                    FeatureBagging(contamination=an_perc, base_estimator=ConfidenceBoosting(clf=HBOS(contamination=an_perc)), n_estimators=5),
                    SUOD(contamination=an_perc, base_estimators=[PCA(contamination=an_perc),

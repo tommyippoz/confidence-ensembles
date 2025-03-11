@@ -1,9 +1,8 @@
 import copy
 import random
 
-from confens.classifiers.Classifier import Classifier
 from confens.classifiers.ConfidenceEnsemble import ConfidenceEnsemble
-from confens.utils.general_utils import get_classifier_name
+from confens.utils.classifier_utils import get_classifier_name
 
 
 class ConfidenceBagging(ConfidenceEnsemble):
