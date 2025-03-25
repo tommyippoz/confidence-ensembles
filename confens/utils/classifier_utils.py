@@ -19,6 +19,7 @@ def predict_proba(clf, X):
     else:
         return clf.predict_proba(X)
 
+
 def predict_uns_proba(uns_clf, X):
     """
     Method to compute probabilities of predicted classes.
@@ -48,6 +49,7 @@ def predict_uns_proba(uns_clf, X):
         probs[:, 0] = 0.999
         probs[:, 1] = 0.001
     return probs
+
 
 def get_classifier_name(clf_object):
     """
@@ -92,7 +94,10 @@ def predict_confidence(clf, X):
     :return: array of confidence scores
     """
     c_conf = None
-    if is_classifier(clf) or isinstance(clf, BaseDetector):
+    if isinstance(clf, BaseDetector):
+        y_proba = predict_proba(clf, X)
+        c_conf = numpy.max(y_proba, axis=1)
+    if is_classifier(clf):
         if hasattr(clf, 'predict_confidence') and callable(clf.predict_confidence):
             c_conf = clf.predict_confidence(X)
         else:

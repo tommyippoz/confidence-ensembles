@@ -13,6 +13,19 @@ from confens.metrics.EnsembleMetric import get_default
 from confens.utils.classifier_utils import predict_proba, predict_confidence
 
 
+def define_bin_proba_thr(probs, cont: float = None) -> float:
+    """
+    Method for finding a confidence threshold based on the expected contamination (iterative)
+    :param probs: probabilities to find threshold of
+    :param target: the quantity to be used as reference for gettng to the threshold
+    :return: a float value to be used as threshold to decide on anomalies (binary classification)
+    """
+    an_probas = numpy.sort(probs[:, 1])
+    cutoff_index = int(len(an_probas)*(1-cont))
+    thr = an_probas[cutoff_index]
+    return thr
+
+
 def define_proba_thr(probs, target: float = None, delta: float = 0.01) -> float:
     """
     Method for finding a confidence threshold based on the expected contamination (iterative)
@@ -61,7 +74,7 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         self.clf_list = []
         self.input_val = False
         self.weighted = weighted
-        self.proba_thr = None
+        self.bin_proba_thr = None
         self.conf_thr = conf_thr
         self.contamination = clf.contamination if hasattr(clf, 'contamination') else None
         self.perc_decisors = perc_decisors
@@ -122,7 +135,7 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         if not self.input_val:
             self.validate_input()
         self.fit_ensemble(X, y)
-        self.proba_thr = define_proba_thr(target=self.contamination, probs=predict_proba(self, X)) \
+        self.bin_proba_thr = define_bin_proba_thr(predict_proba(self, X), self.contamination) \
             if self.contamination is not None else 0.5
 
         # Compliance with SKLEARN and PYOD
@@ -261,6 +274,9 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         :return: array of predicted class
         """
         proba = predict_proba(self, X)
+        # if self.is_unsupervised() and self.bin_proba_thr is not None:
+        #     return 1.0*(proba[:, 1] > self.bin_proba_thr)
+        # else:
         return self.classes_[numpy.argmax(proba, axis=1)]
 
     def decision_function(self, X):
