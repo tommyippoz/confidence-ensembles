@@ -67,6 +67,12 @@ def get_classifier_name(clf_object):
             clf_name = clf_name[0:-1]
         else:
             clf_name = str(clf_object)
+        if hasattr(clf_object, "base_estimator") and hasattr(clf_object, "n_estimators"):
+            clf_name = clf_name + "(" + get_single_classifier_name(clf_object.base_estimator) + ";" \
+                       + str(clf_object.n_estimators) + ")"
+        if hasattr(clf_object, "estimators"):
+            clf_name = clf_name + "(" + "@".join([get_single_classifier_name(clf) for clf in clf_object.estimators]) + ";" \
+                       + str(len(clf_object.estimators)) + ")"
     return clf_name
 
 
@@ -79,10 +85,20 @@ def get_single_classifier_name(clf_object):
     if hasattr(clf_object, "classifier_name") and callable(clf_object.classifier_name):
         clf_name = clf_object.classifier_name()
         if clf_name == 'Pipeline':
-            keys = list(clf_object.named_steps.keys())
-            clf_name = str(keys) if len(keys) != 2 else str(keys[1]).upper()
+            for x in list(clf_object.named_steps.keys()):
+                if is_classifier(clf_object[x]):
+                    clf_name = get_single_classifier_name(clf_object[x])
+    elif isinstance(clf_object, tuple):
+        clf_name = str(clf_object[0])
+        for x in clf_object:
+            if is_classifier(x):
+                clf_name = get_single_classifier_name(x)
     else:
         clf_name = clf_object.__class__.__name__
+        if clf_name == 'Pipeline':
+            for x in list(clf_object.named_steps.keys()):
+                if is_classifier(clf_object[x]):
+                    clf_name = get_single_classifier_name(clf_object[x])
     return clf_name
 
 
