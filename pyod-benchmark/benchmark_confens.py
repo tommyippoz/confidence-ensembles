@@ -103,9 +103,13 @@ for alg in ['ABOD', 'CBLOF', 'FB', 'HBOS', 'IForest', 'KNN', 'LOF',
             'MCD', 'OCSVM', 'PCA', 'AutoEncoder', 'CD', 'COPOD', 'DIF', 'ECOD',
             'GMM', 'KDE', 'LODA', 'QMCD', 'Sampling', 'SOS', 'ALAD', 'AnoGAN ',
             'INNE', 'KPCA', 'LMDD', 'LOCI', 'LSCP', 'LUNAR', 'MO_GAAL', 'RGraph', 'SO_GAAL', 'SOD', 'VAE']:
-    df_columns.append(alg)
+
     df_columns.append('ConfBag(' + alg + ')')
-    df_columns.append('ConfBoost(' + alg + ')')
+    df_columns.append(alg)
+    df_columns.append('ConfBoost10(' + alg + ')')
+    df_columns.append('ConfBoost10W(' + alg + ')')
+    df_columns.append('ConfBoost20(' + alg + ')')
+    df_columns.append('ConfBoost20W(' + alg + ')')
 n_classifiers = len(df_columns) - 4
 
 # initialize the container for saving the results
