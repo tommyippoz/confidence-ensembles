@@ -299,4 +299,4 @@ class XGB(Classifier):
         return self
 
     def classifier_name(self):
-        return "XGBClassifier"
+        return "XGBClassifier(" + str(self.clf.n_estimators) + ")"
