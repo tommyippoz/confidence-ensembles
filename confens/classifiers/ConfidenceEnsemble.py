@@ -1,5 +1,6 @@
 import copy
 from collections.abc import Iterable
+from multiprocessing.pool import ThreadPool
 
 import numpy
 from pyod.models.base import BaseDetector
@@ -152,6 +153,15 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         """
         pass
 
+    def predict_base(self, X, learner_index):
+        if hasattr(self, "feature_sets"):
+            # ConfBag, each estimator uses a subset of features
+            predictions = predict_proba(self.estimators_[learner_index], X[:, self.feature_sets[learner_index]])
+        else:
+            # ConfBoost, all estimators use all features
+            predictions = predict_proba(self.estimators_[learner_index], X)
+        return predictions
+
     def predict_proba(self, X, get_base:bool = False):
         """
         Function to assign probabilities to each class given a test set
@@ -163,14 +173,10 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         proba_array = []
         conf_array = []
         base_dict = {}
+        with ThreadPool(self.n_base) as p:
+            proba_array = p.starmap(self.predict_base, [(X, i) for i in range(0, self.n_base)])
         for i in range(0, self.n_base):
-            if hasattr(self, "feature_sets"):
-                # ConfBag, each estimator uses a subset of features
-                predictions = predict_proba(self.estimators_[i], X[:, self.feature_sets[i]])
-            else:
-                # ConfBoost, all estimators use all features
-                predictions = predict_proba(self.estimators_[i], X)
-            proba_array.append(predictions)
+            predictions = proba_array[i]
             base_dict[str(i) + '#' + get_classifier_name(self.estimators_[i])] = predictions
             conf_array.append(numpy.max(predictions, axis=1))
         # 3d matrix (clf, row, probability for class)

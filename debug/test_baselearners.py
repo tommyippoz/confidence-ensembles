@@ -44,7 +44,7 @@ LABEL_NAME = 'multilabel'
 # Name of the 'normal' class in datasets. This will be used only for binary classification (anomaly detection)
 NORMAL_TAG = 'normal'
 # Name of the file in which outputs of the analysis will be saved
-SCORES_FILE = "scores_with_baselearners.csv"
+SCORES_FILE = "scores_parallel.csv"
 # Percantage of test data wrt train data
 TT_SPLIT = 0.5
 # True if debug information needs to be shown
@@ -114,13 +114,13 @@ def get_learners(cont_perc):
             for s_ratio in [0.5]:
                 for mf in [0.7]:
                     learners.append(ConfidenceBagging(clf=clf, n_base=n_base, sampling_ratio=s_ratio,
-                                                      max_features=mf, weighted=True))
+                                                      max_features=mf, weighted=True, parallel_train=True))
 
-            for boost_thr in [0.8]:
-                for s_ratio in [0.3]:
-                    learners.append(ConfidenceBoosting(clf=clf, n_base=n_base, learning_rate=2,
-                                                       sampling_ratio=s_ratio,
-                                                       relative_boost_thr=boost_thr, weighted=True))
+            #for boost_thr in [0.8]:
+            #    for s_ratio in [0.3]:
+            #        learners.append(ConfidenceBoosting(clf=clf, n_base=n_base, learning_rate=2,
+            #                                           sampling_ratio=s_ratio,
+            #                                           relative_boost_thr=boost_thr, weighted=True))
 
     return learners
 
@@ -149,8 +149,8 @@ if __name__ == '__main__':
             # if file is a CSV, it is assumed to be a dataset to be processed
             df = pandas.read_csv(full_name, sep=",")
             df = df.sample(frac=1.0)
-            if len(df.index) > 80000:
-                df = df.iloc[:80000, :]
+            if len(df.index) > 8000:
+                df = df.iloc[:8000, :]
             if VERBOSE:
                 print("\n------------ DATASET INFO -----------------")
                 print("Data Points in Dataset '%s': %d" % (dataset_file, len(df.index)))
@@ -219,20 +219,20 @@ if __name__ == '__main__':
                     mcc = abs(metrics.matthews_corrcoef(y_test, y_pred))
 
                     # Seeing what is the base-learner with biggest MCC
-                    if isinstance(classifier, ConfidenceEnsemble):
-                        y_pred, base_pred = classifier.predict_proba(x_test, get_base=True)
-                        base_mcc = {}
-                        for (base_k, base_p) in base_pred.items():
-                            print_df[base_k + "_probas"] = [str(p) for p in [base_p[i, :] for i in range(0, len(y_test))]]
-                            base_y = classes[numpy.argmax(base_p, axis=1)]
-                            print_df[base_k + "_pred"] = base_y
-                            base_mcc[base_k] = metrics.matthews_corrcoef(y_test, base_y)
-                        best_base = max(base_mcc, key=base_mcc.get)
-                        best_base_mcc = base_mcc[best_base]
-                        div_met_dict = classifier.get_diversity(x_test, y_test, DIVERSITY_METRICS)
-                    else:
-                        best_base = clf_name
-                        best_base_mcc = mcc
+                    # if isinstance(classifier, ConfidenceEnsemble):
+                    #     y_pred, base_pred = classifier.predict_proba(x_test, get_base=True)
+                    #     base_mcc = {}
+                    #     for (base_k, base_p) in base_pred.items():
+                    #         print_df[base_k + "_probas"] = [str(p) for p in [base_p[i, :] for i in range(0, len(y_test))]]
+                    #         base_y = classes[numpy.argmax(base_p, axis=1)]
+                    #         print_df[base_k + "_pred"] = base_y
+                    #         base_mcc[base_k] = metrics.matthews_corrcoef(y_test, base_y)
+                    #     best_base = max(base_mcc, key=base_mcc.get)
+                    #     best_base_mcc = base_mcc[best_base]
+                    #     #div_met_dict = classifier.get_diversity(x_test, y_test, DIVERSITY_METRICS)
+                    # else:
+                    #     best_base = clf_name
+                    #     best_base_mcc = mcc
 
                     if BINARIZE:
                         # Prints metrics for binary classification + train time and model size
@@ -254,9 +254,9 @@ if __name__ == '__main__':
                         myfile.write(full_name + "," + clf_name + "," + str(BINARIZE) + "," +
                                      str(TT_SPLIT) + ',' + str(acc) + "," + str(misc) + "," + str(mcc) + "," +
                                      str(train_time) + "," + str(test_time) + "," +
-                                     str(best_base) + "," + str(best_base_mcc) + ",")
-                        for met in DIVERSITY_METRICS:
-                            myfile.write(str(div_met_dict[met.get_name()]/len(y_test)) + ",")
+                                     str(0) + "," + str(0) + ",")
+                        #for met in DIVERSITY_METRICS:
+                        #    myfile.write(str(div_met_dict[met.get_name()]/len(y_test)) + ",")
                         myfile.write("\n")
 
                 classifier = None
