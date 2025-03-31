@@ -11,6 +11,8 @@ import os
 import sys
 from time import time
 
+import pandas
+
 # temporary solution for relative imports in case pyod is not installed
 # if pyod is installed, no need to use the following line
 from confens.classifiers.ConfidenceBagging import ConfidenceBagging
@@ -75,6 +77,8 @@ from sklearn.metrics import roc_auc_score, matthews_corrcoef
 
 # TODO: add neural networks, LOCI, SOS, COF, SOD
 
+RESULT_CSV = 'pyod_benc_result.csv'
+
 # Define data file and read X and y
 mat_file_list = ['arrhythmia.mat',
                  'cardio.mat',
@@ -95,123 +99,7 @@ mat_file_list = ['arrhythmia.mat',
                  'wbc.mat'
                  ]
 
-# define the number of iterations
-n_ite = 1
-
-df_columns = ['Data', '#Samples', '# Dimensions', 'Outlier Perc']
-for alg in ['ABOD', 'CBLOF', 'FB', 'HBOS', 'IForest', 'KNN', 'LOF',
-            'MCD', 'OCSVM', 'PCA', 'AutoEncoder', 'CD', 'COPOD', 'DIF', 'ECOD',
-            'GMM', 'KDE', 'LODA', 'QMCD', 'Sampling', 'SOS', 'ALAD', 'AnoGAN ',
-            'INNE', 'KPCA', 'LMDD', 'LOCI', 'LSCP', 'LUNAR', 'MO_GAAL', 'RGraph', 'SO_GAAL', 'SOD', 'VAE']:
-    df_columns.append(alg)
-    df_columns.append('ConfBag(' + alg + ')')
-    df_columns.append('ConfBoost(' + alg + ')')
-n_classifiers = len(df_columns) - 4
-
-# initialize the container for saving the results
-roc_df = pd.DataFrame(columns=df_columns)
-prn_df = pd.DataFrame(columns=df_columns)
-time_df = pd.DataFrame(columns=df_columns)
-
-for j in range(len(mat_file_list)):
-
-    mat_file = mat_file_list[j]
-    mat = loadmat(os.path.join('data', mat_file))
-
-    X = mat['X']
-    y = mat['y'].ravel()
-    outliers_fraction = np.count_nonzero(y) / len(y)
-    outliers_percentage = round(outliers_fraction * 100, ndigits=4)
-
-    # construct containers for saving results
-    mcc_list = [mat_file[:-4], X.shape[0], X.shape[1], outliers_percentage]
-    roc_list = [mat_file[:-4], X.shape[0], X.shape[1], outliers_percentage]
-    prn_list = [mat_file[:-4], X.shape[0], X.shape[1], outliers_percentage]
-    time_list = [mat_file[:-4], X.shape[0], X.shape[1], outliers_percentage]
-
-    mcc_mat = np.zeros([n_ite, n_classifiers])
-    roc_mat = np.zeros([n_ite, n_classifiers])
-    prn_mat = np.zeros([n_ite, n_classifiers])
-    time_mat = np.zeros([n_ite, n_classifiers])
-
-    for i in range(n_ite):
-        print("\n... Processing", mat_file, '...', 'Iteration', i + 1)
-        random_state = np.random.RandomState(i)
-
-        # 60% data for training and 40% for testing
-        X_train, X_test, y_train, y_test = \
-            train_test_split(X, y, test_size=0.4, random_state=random_state)
-
-        # standardizing data for processing
-        X_train_norm, X_test_norm = standardizer(X_train, X_test)
-
-        base_classifiers = {
-            'Minimum Covariance Determinant (MCD)': MCD(
-                contamination=outliers_fraction,
-                random_state=random_state),
-            'COPOD': COPOD(
-                contamination=outliers_fraction),
-            'Angle-based Outlier Detector (ABOD)': ABOD(
-                contamination=outliers_fraction),
-            'Cluster-based Local Outlier Factor': CBLOF(
-                n_clusters=10,
-                contamination=outliers_fraction,
-                check_estimator=False,
-                random_state=random_state),
-            'Feature Bagging': FeatureBagging(
-                contamination=outliers_fraction,
-                random_state=random_state),
-            'Histogram-base Outlier Detection (HBOS)': HBOS(
-                contamination=outliers_fraction),
-            'Isolation Forest': IForest(
-                contamination=outliers_fraction,
-                random_state=random_state),
-            'K Nearest Neighbors (KNN)': KNN(
-                contamination=outliers_fraction),
-            'Local Outlier Factor (LOF)': LOF(
-                contamination=outliers_fraction),
-            'One-class SVM (OCSVM)': OCSVM(
-                contamination=outliers_fraction),
-            'Principal Component Analysis (PCA)': PCA(
-                contamination=outliers_fraction,
-                random_state=random_state),
-            'AutoEncoder': AutoEncoder(
-                contamination=outliers_fraction),
-            # 'CD': CD(
-            #    contamination=outliers_fraction),
-            'DIF': DIF(
-                contamination=outliers_fraction),
-            'ECOD': ECOD(
-                contamination=outliers_fraction),
-            'GMM': GMM(
-                contamination=outliers_fraction),
-            'KDE': KDE(
-                contamination=outliers_fraction),
-
-            'LODA': LODA(
-                contamination=outliers_fraction),
-            'QMCD': QMCD(
-                contamination=outliers_fraction),
-            'Sampling': Sampling(
-                contamination=outliers_fraction),
-            'SOS': SOS(
-                contamination=outliers_fraction),
-            # 'ALAD': ALAD(
-            #     contamination=outliers_fraction),
-            # 'AnoGAN':AnoGAN(
-            #     contamination=outliers_fraction),
-            'INNE': INNE(contamination=outliers_fraction),
-            'KPCA': KPCA(contamination=outliers_fraction),
-            'LMDD': LMDD(contamination=outliers_fraction),
-            # 'LOCI': LOCI(contamination=outliers_fraction),
-            'LUNAR': LUNAR(contamination=outliers_fraction),
-            'MO_GAAL': MO_GAAL(contamination=outliers_fraction),
-            # 'RGraph': RGraph(contamination=outliers_fraction),
-            # 'SO_GAAL': SO_GAAL(contamination=outliers_fraction),
-            'SOD': SOD(contamination=outliers_fraction),
-
-        }
-        base_classifiers_indices = {
+base_classifiers_indices = {
             'Minimum Covariance Determinant (MCD)': 7,
             'COPOD': 12,
             'Angle-based Outlier Detector (ABOD)': 0,
@@ -246,56 +134,200 @@ for j in range(len(mat_file_list)):
             'SOD': 31,
         }
 
+# define the number of iterations
+n_ite = 1
+
+df_columns = ['Data', '#Samples', '# Dimensions', 'Outlier Perc']
+for alg in ['ABOD', 'CBLOF', 'FB', 'HBOS', 'IForest', 'KNN', 'LOF',
+            'MCD', 'OCSVM', 'PCA', 'AutoEncoder', 'CD', 'COPOD', 'DIF', 'ECOD',
+            'GMM', 'KDE', 'LODA', 'QMCD', 'Sampling', 'SOS', 'ALAD', 'AnoGAN ',
+            'INNE', 'KPCA', 'LMDD', 'LOCI', 'LSCP', 'LUNAR', 'MO_GAAL', 'RGraph', 'SO_GAAL', 'SOD', 'VAE']:
+    df_columns.append('ConfBag10(' + alg + ')')
+    df_columns.append('ConfBag20(' + alg + ')')
+    df_columns.append(alg)
+    df_columns.append('ConfBoost10(' + alg + ')')
+    df_columns.append('ConfBoost10W(' + alg + ')')
+    df_columns.append('ConfBoost5(' + alg + ')')
+    df_columns.append('ConfBoost5W(' + alg + ')')
+n_classifiers = len(df_columns) - 4
+
+# initialize the container for saving the results
+mcc_df = pd.DataFrame(columns=df_columns)
+roc_df = pd.DataFrame(columns=df_columns)
+prn_df = pd.DataFrame(columns=df_columns)
+time_df = pd.DataFrame(columns=df_columns)
+
+existing_exps = None
+if os.path.exists(RESULT_CSV):
+    existing_exps = pandas.read_csv(RESULT_CSV)
+    existing_exps = existing_exps.loc[:, ['dataset', 'clf', 'iter']]
+else:
+    with open(RESULT_CSV, 'w') as f:
+        f.write('dataset,clf,iter,duration,roc,mcc,pr@n\n')
+
+for j in range(len(mat_file_list)):
+
+    mat_file = mat_file_list[j]
+    mat = loadmat(os.path.join('data', mat_file))
+
+    X = mat['X']
+    y = mat['y'].ravel()
+    outliers_fraction = np.count_nonzero(y) / len(y)
+    outliers_percentage = round(outliers_fraction * 100, ndigits=4)
+
+    # construct containers for saving results
+    mcc_list = [mat_file[:-4], X.shape[0], X.shape[1], outliers_percentage]
+    roc_list = [mat_file[:-4], X.shape[0], X.shape[1], outliers_percentage]
+    prn_list = [mat_file[:-4], X.shape[0], X.shape[1], outliers_percentage]
+    time_list = [mat_file[:-4], X.shape[0], X.shape[1], outliers_percentage]
+
+    mcc_mat = np.zeros([n_ite, n_classifiers])
+    roc_mat = np.zeros([n_ite, n_classifiers])
+    prn_mat = np.zeros([n_ite, n_classifiers])
+    time_mat = np.zeros([n_ite, n_classifiers])
+
+    for i in range(n_ite):
+        print("\n... Processing", mat_file, '...', 'Iteration', i + 1)
+        random_state = np.random.RandomState(i)
+
+        # 60% data for training and 40% for testing
+        X_train, X_test, y_train, y_test = \
+            train_test_split(X, y, test_size=0.4, random_state=random_state)
+
+        # standardizing data for processing
+        X_train_norm, X_test_norm = standardizer(X_train, X_test)
+
+        base_classifiers = {
+            #'Minimum Covariance Determinant (MCD)': MCD(
+            #    contamination=outliers_fraction,
+            #    random_state=random_state),
+            'COPOD': COPOD(
+                contamination=outliers_fraction),
+            'Angle-based Outlier Detector (ABOD)': ABOD(
+                contamination=outliers_fraction),
+            'Cluster-based Local Outlier Factor': CBLOF(
+                n_clusters=10,
+                contamination=outliers_fraction,
+                check_estimator=False,
+                random_state=random_state),
+            'Feature Bagging': FeatureBagging(
+                contamination=outliers_fraction,
+                random_state=random_state),
+            'Histogram-base Outlier Detection (HBOS)': HBOS(
+                contamination=outliers_fraction),
+            'Isolation Forest': IForest(
+                contamination=outliers_fraction,
+                random_state=random_state),
+            'K Nearest Neighbors (KNN)': KNN(
+                contamination=outliers_fraction),
+            'Local Outlier Factor (LOF)': LOF(
+                contamination=outliers_fraction),
+            'One-class SVM (OCSVM)': OCSVM(
+                contamination=outliers_fraction),
+            'Principal Component Analysis (PCA)': PCA(
+                contamination=outliers_fraction,
+                random_state=random_state),
+            'AutoEncoder': AutoEncoder(
+                contamination=outliers_fraction),
+            # 'CD': CD(
+            #    contamination=outliers_fraction),
+            #'DIF': DIF(
+            #    contamination=outliers_fraction),
+            'ECOD': ECOD(
+                contamination=outliers_fraction),
+            'GMM': GMM(
+                contamination=outliers_fraction),
+            'KDE': KDE(
+                contamination=outliers_fraction),
+
+            'LODA': LODA(
+                contamination=outliers_fraction),
+            'QMCD': QMCD(
+                contamination=outliers_fraction),
+            'Sampling': Sampling(
+                contamination=outliers_fraction),
+            #'SOS': SOS(
+            #    contamination=outliers_fraction, ),
+            # 'ALAD': ALAD(
+            #     contamination=outliers_fraction),
+            # 'AnoGAN':AnoGAN(
+            #     contamination=outliers_fraction),
+            'INNE': INNE(contamination=outliers_fraction),
+            'KPCA': KPCA(contamination=outliers_fraction),
+            #'LMDD': LMDD(contamination=outliers_fraction),
+            # 'LOCI': LOCI(contamination=outliers_fraction),
+            'LUNAR': LUNAR(contamination=outliers_fraction),
+            'MO_GAAL': MO_GAAL(contamination=outliers_fraction),
+            # 'RGraph': RGraph(contamination=outliers_fraction),
+            # 'SO_GAAL': SO_GAAL(contamination=outliers_fraction),
+            #'SOD': SOD(contamination=outliers_fraction),
+
+        }
+
         classifiers = {}
         for clf_name in base_classifiers.keys():
             clf = base_classifiers[clf_name]
-            classifiers['ConfBag(' + clf_name + ')'] = ConfidenceBagging(clf=clf)
+            classifiers['ConfBag10(' + clf_name + ')'] = ConfidenceBagging(clf=clf)
+            classifiers['ConfBag20(' + clf_name + ')'] = ConfidenceBagging(clf=clf, n_base=20)
             classifiers[clf_name] = clf
             classifiers['ConfBoost10(' + clf_name + ')'] = ConfidenceBoosting(clf=clf, n_base=10)
             classifiers['ConfBoost10W(' + clf_name + ')'] = ConfidenceBoosting(clf=clf, n_base=10, weighted=True)
-            classifiers['ConfBoost20(' + clf_name + ')'] = ConfidenceBoosting(clf=clf, n_base=20)
-            classifiers['ConfBoost20W(' + clf_name + ')'] = ConfidenceBoosting(clf=clf, n_base=20, weighted=True)
+            classifiers['ConfBoost5(' + clf_name + ')'] = ConfidenceBoosting(clf=clf, n_base=5)
+            classifiers['ConfBoost5W(' + clf_name + ')'] = ConfidenceBoosting(clf=clf, n_base=5, weighted=True)
 
         classifiers_indices = {}
         index = 0
         for clf_name in base_classifiers_indices.keys():
-            classifiers_indices['ConfBag(' + clf_name + ')'] = index + 1
+            classifiers_indices['ConfBag10(' + clf_name + ')'] = index + 1
+            classifiers_indices['ConfBag20(' + clf_name + ')'] = index + 2
             classifiers_indices[clf_name] = index
-            classifiers_indices['ConfBoost10(' + clf_name + ')'] = index + 2
-            classifiers_indices['ConfBoost10W(' + clf_name + ')'] = index + 3
-            classifiers_indices['ConfBoost20(' + clf_name + ')'] = index + 4
-            classifiers_indices['ConfBoost20W(' + clf_name + ')'] = index + 5
-            index = index + 6
+            classifiers_indices['ConfBoost10(' + clf_name + ')'] = index + 3
+            classifiers_indices['ConfBoost10W(' + clf_name + ')'] = index + 4
+            classifiers_indices['ConfBoost5(' + clf_name + ')'] = index + 5
+            classifiers_indices['ConfBoost5W(' + clf_name + ')'] = index + 6
+            index = index + 7
 
         for clf_name, clf in classifiers.items():
-            t0 = time()
-            clf.fit(X_train_norm)
-            test_scores = clf.decision_function(X_test_norm)
 
-            # Handle NaN values in test_scores
-            test_scores = np.nan_to_num(test_scores,
-                                        nan=0.0,
-                                        posinf=np.nanmax(test_scores),
-                                        neginf=np.nanmin(test_scores))
-            # Handle NaN values in y_test
-            y_test = np.nan_to_num(y_test, nan=0.0, posinf=0.0, neginf=0.0)
-            y_pred = clf.predict(X_test_norm)
+            if existing_exps is not None and (((existing_exps['dataset'] == mat_file) &
+                                               (existing_exps['iter'] == i) &
+                                               (existing_exps['clf'] == clf_name)).any()):
+                print('Skipping classifier %s, already in the results' % clf_name)
+            else:
+                t0 = time()
+                clf.fit(X_train_norm)
+                test_scores = clf.decision_function(X_test_norm)
 
-            t1 = time()
-            duration = round(t1 - t0, ndigits=4)
+                # Handle NaN values in test_scores
+                test_scores = np.nan_to_num(test_scores,
+                                            nan=0.0,
+                                            posinf=np.nanmax(test_scores),
+                                            neginf=np.nanmin(test_scores))
+                # Handle NaN values in y_test
+                y_test = np.nan_to_num(y_test, nan=0.0, posinf=0.0, neginf=0.0)
+                y_pred = clf.predict(X_test_norm)
 
-            roc = round(roc_auc_score(y_test, test_scores), ndigits=4)
-            prn = round(precision_n_scores(y_test, test_scores), ndigits=4)
-            mcc = round(matthews_corrcoef(y_test, y_pred), ndigits=4)
+                t1 = time()
+                duration = round(t1 - t0, ndigits=4)
 
-            print('{clf_name}\tMCC:{mcc} ROC:{roc}, precision @ rank n:{prn}, '
-                  'execution time: {duration}s'.format(
-                mcc=mcc, clf_name=clf_name, roc=roc, prn=prn, duration=duration))
+                roc = round(roc_auc_score(y_test, test_scores), ndigits=4)
+                prn = round(precision_n_scores(y_test, test_scores), ndigits=4)
+                mcc = round(matthews_corrcoef(y_test, y_pred), ndigits=4)
 
-            time_mat[i, classifiers_indices[clf_name]] = duration
-            mcc_mat[i, classifiers_indices[clf_name]] = mcc
-            roc_mat[i, classifiers_indices[clf_name]] = roc
-            prn_mat[i, classifiers_indices[clf_name]] = prn
+                print('{clf_name}\tMCC:{mcc} ROC:{roc}, precision @ rank n:{prn}, '
+                      'execution time: {duration}s'.format(
+                    mcc=mcc, clf_name=clf_name, roc=roc, prn=prn, duration=duration))
+
+                time_mat[i, classifiers_indices[clf_name]] = duration
+                mcc_mat[i, classifiers_indices[clf_name]] = mcc
+                roc_mat[i, classifiers_indices[clf_name]] = roc
+                prn_mat[i, classifiers_indices[clf_name]] = prn
+
+                with open(RESULT_CSV, 'a') as myhandle:
+                    myhandle.write(mat_file + "," + clf_name + "," + str(i) + "," +
+                                    str(duration) + "," + str(mcc) + "," + str(roc) + "," +
+                                    str(prn) + "\n")
+
 
     time_list = time_list + np.mean(time_mat, axis=0).tolist()
     temp_df = pd.DataFrame(time_list).transpose()
