@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Iterable
 
 import numpy
@@ -5,17 +6,19 @@ from pyod.models.base import BaseDetector
 from sklearn.base import is_classifier
 from sklearn.utils.validation import check_is_fitted, check_array
 
-
-def predict_proba(clf, X):
+def predict_proba(clf, X, get_base:bool = False):
     """
     Function to predict probabilities of a classifier
     Needed to overcome issues in pyod's predict_proba
-    :param clf:
-    :param X:
+    :param get_base: Tue if predictions of base-learners have to be returned as well
+    :param clf: the classifier to be used
+    :param X: the test set
     :return:
     """
     if isinstance(clf, BaseDetector):
         return predict_uns_proba(clf, X)
+    elif 'get_base' in inspect.getfullargspec(clf.predict_proba)[0]:
+        return clf.predict_proba(X, get_base=get_base)
     else:
         return clf.predict_proba(X)
 
