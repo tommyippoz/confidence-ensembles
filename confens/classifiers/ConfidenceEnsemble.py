@@ -10,7 +10,7 @@ from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_is_fitted
 
 from confens.metrics.EnsembleMetric import get_default
-from confens.utils.classifier_utils import predict_proba, predict_confidence
+from confens.utils.classifier_utils import predict_proba, predict_confidence, get_classifier_name
 
 
 def define_bin_proba_thr(probs, cont: float = None) -> float:
@@ -152,15 +152,17 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         """
         pass
 
-    def predict_proba(self, X):
+    def predict_proba(self, X, get_base:bool = False):
         """
         Function to assign probabilities to each class given a test set
+        :param get_base: True if probabilities of base-learners have to be returned as well
         :param X: the test set
         :return: a numpy matrix
         """
         # Scoring probabilities and confidence
         proba_array = []
         conf_array = []
+        base_dict = {}
         for i in range(0, self.n_base):
             if hasattr(self, "feature_sets"):
                 # ConfBag, each estimator uses a subset of features
@@ -169,6 +171,7 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
                 # ConfBoost, all estimators use all features
                 predictions = predict_proba(self.estimators_[i], X)
             proba_array.append(predictions)
+            base_dict[str(i) + '#' + get_classifier_name(self.estimators_[i])] = predictions
             conf_array.append(numpy.max(predictions, axis=1))
         # 3d matrix (clf, row, probability for class)
         proba_array = numpy.asarray(proba_array)
@@ -210,7 +213,10 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
             proba = (p_sum / numpy.sum(p_sum, axis=0)).T
 
         # Final averaged Result
-        return proba
+        if get_base:
+            return proba, base_dict
+        else:
+            return proba
 
     def draw_samples(self, X, y, samples_n: int, weights = None):
         """
@@ -244,7 +250,7 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
             sample_y = None
         return sample_x, sample_y
 
-    def predict_confidence(self, X, y_proba = None):
+    def predict_confidence(self, X):
         """
         Method to compute the confidence in predictions of a classifier
         :param X: the test set
@@ -267,17 +273,20 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         fi = numpy.asarray(fi)
         return numpy.average(fi, axis=1)
 
-    def predict(self, X):
+    def predict(self, X, get_base: bool = False):
         """
         Method to compute predict of a classifier
+        :param get_base: True if predictions of base-learners have to be provided as well
         :param X: the test set
-        :return: array of predicted class
+        :return: array of predicted class and (if get_base = True) dictionary with base-learners predictions
         """
-        proba = predict_proba(self, X)
-        # if self.is_unsupervised() and self.bin_proba_thr is not None:
-        #     return 1.0*(proba[:, 1] > self.bin_proba_thr)
-        # else:
-        return self.classes_[numpy.argmax(proba, axis=1)]
+        if get_base is True:
+            proba, base_probas = predict_proba(self, X, get_base=True)
+            pred_base = [self.classes_[numpy.argmax(base_p, axis=1)] for base_p in base_probas.values()]
+            return self.classes_[numpy.argmax(proba, axis=1)], dict(zip(base_probas.keys(), pred_base))
+        else:
+            proba = predict_proba(self, X)
+            return self.classes_[numpy.argmax(proba, axis=1)]
 
     def decision_function(self, X):
         """
@@ -329,19 +338,8 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         X = check_array(X)
         predictions = []
         check_is_fitted(self)
-        if hasattr(self, "estimators_"):
-            # If it is an ensemble and if it is trained
-            for baselearner in self.estimators_:
-                predictions.append(baselearner.predict(X))
-            predictions = numpy.column_stack(predictions)
-        elif self.clf is not None:
-            # If it wraps an ensemble
-            check_is_fitted(self.clf)
-            if hasattr(self.clf, "estimators_"):
-                # If it is an ensemble and if it is trained
-                for baselearner in self.clf.estimators_:
-                    predictions.append(baselearner.predict(X))
-                predictions = numpy.column_stack(predictions)
+        ens_pred, predictions = self.predict(X, True)
+        predictions = numpy.column_stack(list(predictions.values()))
         if predictions is not None and len(predictions) > 0:
             # Compute metrics
             metric_scores = {}
