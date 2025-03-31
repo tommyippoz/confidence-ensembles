@@ -42,6 +42,9 @@ https://github.com/tommyippoz/confidence-ensembles/blob/8bbca5446fa912174dd78fbb
 
 ## Credits
 
+Please Cite 
+- Zoppi, T., & Popov, P. (2025). Confidence Ensembles: Tabular Data Classifiers on Steroids. Information Fusion, 103126.
+
 Contributors
 - Tommaso Zoppi
 - Peter Popov
