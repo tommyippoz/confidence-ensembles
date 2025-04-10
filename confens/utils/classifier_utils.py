@@ -65,17 +65,23 @@ def get_classifier_name(clf_object):
         if is_classifier(clf_object) or isinstance(clf_object, BaseDetector):
             clf_name = get_single_classifier_name(clf_object)
         elif isinstance(clf_object, Iterable):
-            for clf_item in clf_object:
-                clf_name = clf_name + (get_single_classifier_name(clf_item) if is_classifier(clf_item) else "?") + "@"
-            clf_name = clf_name[0:-1]
+            if len(clf_object) < 5:
+                for clf_item in clf_object:
+                    clf_name = clf_name + (get_single_classifier_name(clf_item) if is_classifier(clf_item) else "?") + "@"
+                clf_name = clf_name[0:-1]
+            else:
+                clf_name = clf_name + str(len(clf_object)) + "_algs"
         else:
             clf_name = str(clf_object)
         if hasattr(clf_object, "base_estimator") and hasattr(clf_object, "n_estimators"):
             clf_name = clf_name + "(" + get_single_classifier_name(clf_object.base_estimator) + ";" \
                        + str(clf_object.n_estimators) + ")"
         if hasattr(clf_object, "estimators"):
-            clf_name = clf_name + "(" + "@".join([get_single_classifier_name(clf) for clf in clf_object.estimators]) + ";" \
+            if len(clf_object.estimators) < 5:
+                clf_name = clf_name + "(" + "@".join([get_single_classifier_name(clf) for clf in clf_object.estimators]) + ";" \
                        + str(len(clf_object.estimators)) + ")"
+            else:
+                clf_name = clf_name + "(" + str(len(clf_object.estimators)) + ")"
     return clf_name
 
 
