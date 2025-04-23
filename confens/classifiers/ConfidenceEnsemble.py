@@ -91,7 +91,7 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         elif isinstance(self.clf, Iterable):
             self.clf_list = []
             for clf_item in self.clf:
-                if is_classifier(clf_item) or isinstance(self.clf, BaseDetector):
+                if is_classifier(clf_item) or isinstance(clf_item, BaseDetector):
                     self.clf_list.append(clf_item)
                 else:
                     print("Cant recognize object s a classifier")
