@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Benchmark of all implemented algorithms
 """
-# Author: Yue Zhao <zhaoy@cmu.edu>
+# Author: Yue Zhao  <zhaoy@cmu.edu>
 # License: BSD 2 clause
 
 from __future__ import division
