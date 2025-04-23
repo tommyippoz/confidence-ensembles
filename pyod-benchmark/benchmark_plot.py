@@ -49,7 +49,7 @@ from sklearn.metrics import roc_auc_score, matthews_corrcoef
 RESULT_CSV = '20250423_pyod_bench.csv'
 
 # Define data file and read X and y
-# Same as pyod benchmark
+# Same as pyod benchmark here
 mat_file_list = ['arrhythmia.mat',
                  'cardio.mat',
                  'glass.mat',
