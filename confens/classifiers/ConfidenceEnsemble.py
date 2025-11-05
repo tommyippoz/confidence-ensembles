@@ -51,7 +51,7 @@ def define_proba_thr(probs, target: float = None, delta: float = 0.01) -> float:
     return p_thr
 
 
-class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
+class ConfidenceEnsemble(ClassifierMixin, BaseEstimator):
     """
     Class for creating confidence ensembles
     """
@@ -67,6 +67,7 @@ class ConfidenceEnsemble(BaseEstimator, ClassifierMixin):
         :param n_decisors: number of base learners to be used for prediction
         :param weighted: True if prediction has to be computed as a weighted sum of probabilities
         """
+        super().__init__()
         self.clf = clf
         self._estimator_type = "classifier"
         self.feature_importances_ = None
