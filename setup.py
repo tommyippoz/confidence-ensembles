@@ -5,10 +5,10 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
      name='confidence-ensembles',
-     version='0.7',
+     version='0.9',
      scripts=[],
      author="Tommaso Zoppi",
-     author_email="tommaso.zoppi@unfi.it",
+     author_email="tommaso.zoppi@unifi.it",
      description="Confidence Ensembles to Improve Classification",
      long_description=long_description,
      long_description_content_type="text/markdown",

@@ -48,7 +48,7 @@ def predict_uns_proba(uns_clf, test_features):
     return proba
 
 
-class Classifier(BaseEstimator, ClassifierMixin):
+class Classifier(ClassifierMixin, BaseEstimator):
     """
     Basic Abstract Class for Classifiers.
     Abstract methods are only the classifier_name, with many degrees of freedom in implementing them.
@@ -60,6 +60,7 @@ class Classifier(BaseEstimator, ClassifierMixin):
         Constructor of a generic Classifier
         :param clf: algorithm to be used as Classifier
         """
+        super().__init__()
         self.clf = copy.deepcopy(clf) if clf is not None else None
         self._estimator_type = "classifier"
         self.feature_importances_ = None
