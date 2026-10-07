@@ -5,7 +5,7 @@ with open("README.md", "r", encoding = "utf-8") as fh:
 
 setuptools.setup(
      name='confidence-ensembles',
-     version='0.10',
+     version='0.11',
      scripts=[],
      author="Tommaso Zoppi",
      author_email="tommaso.zoppi@unifi.it",
