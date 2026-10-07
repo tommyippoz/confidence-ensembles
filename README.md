@@ -1,6 +1,6 @@
 # Confidence Ensembles
 
-Python Frameworkthat implements confidence ensembles: ConfBag and ConfBoost
+Python Framework that implements confidence ensembles: ConfBag and ConfBoost
 
 ## Aim/Concept of the Project
 

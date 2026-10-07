@@ -2,9 +2,26 @@ import inspect
 from collections.abc import Iterable
 
 import numpy
-from pyod.models.base import BaseDetector
 from sklearn.base import is_classifier
 from sklearn.utils.validation import check_is_fitted, check_array
+
+
+def top_level_package(obj) -> str | None:
+    """
+    Gets the string copntaining the top level package of an object
+    :param obj:
+    :return:
+    """
+    mod = getattr(type(obj), "__module__", None)
+    return mod.split(".")[0] if mod else None
+
+def is_pyod(clf):
+    """
+    True if the classifier is a PYOD object (unsupervised binary classifier)
+    :param clf:
+    :return:
+    """
+    return top_level_package(clf) == "pyod"
 
 def predict_proba(clf, X, get_base:bool = False):
     """
@@ -15,7 +32,7 @@ def predict_proba(clf, X, get_base:bool = False):
     :param X: the test set
     :return:
     """
-    if isinstance(clf, BaseDetector):
+    if is_pyod(clf):
         return predict_uns_proba(clf, X)
     elif 'get_base' in inspect.getfullargspec(clf.predict_proba)[0]:
         return clf.predict_proba(X, get_base=get_base)
@@ -62,7 +79,7 @@ def get_classifier_name(clf_object):
     """
     clf_name = ""
     if clf_object is not None:
-        if is_classifier(clf_object) or isinstance(clf_object, BaseDetector):
+        if is_classifier(clf_object) or is_pyod(clf_object):
             clf_name = get_single_classifier_name(clf_object)
         elif isinstance(clf_object, Iterable):
             if len(clf_object) < 5:
@@ -119,7 +136,7 @@ def predict_confidence(clf, X):
     :return: array of confidence scores
     """
     c_conf = None
-    if isinstance(clf, BaseDetector):
+    if is_pyod(clf):
         y_proba = predict_proba(clf, X)
         c_conf = numpy.max(y_proba, axis=1)
     if is_classifier(clf):
@@ -129,3 +146,35 @@ def predict_confidence(clf, X):
             y_proba = predict_proba(clf, X)
             c_conf = numpy.max(y_proba, axis=1)
     return c_conf
+
+def expected_calibration_error(y_true: numpy.ndarray, y_proba: numpy.ndarray, n_bins: int = 15) -> float:
+    """Expected Calibration Error (Guo et al., 2017; lower is better).
+
+    Buckets samples by predicted confidence (max class probability) into
+    ``n_bins`` equal-width bins on ``[0, 1]``, and reports the weighted
+    average gap between confidence and accuracy inside each bin.
+    """
+    y_true = numpy.asarray(y_true).astype(int).ravel()
+
+    confidences = numpy.max(y_proba, axis=1)
+    predictions = numpy.argmax(y_proba, axis=1)
+    accuracies = (predictions == y_true).astype(float)
+
+    bin_edges = numpy.linspace(0.0, 1.0, n_bins + 1)
+    n = len(y_true)
+    ece = 0.0
+
+    for i in range(n_bins):
+        lo, hi = bin_edges[i], bin_edges[i + 1]
+        # Closed upper edge on the last bin so confidence==1.0 is counted.
+        if i == n_bins - 1:
+            in_bin = (confidences >= lo) & (confidences <= hi)
+        else:
+            in_bin = (confidences >= lo) & (confidences < hi)
+        n_in = int(in_bin.sum())
+        if n_in > 0:
+            avg_conf = float(confidences[in_bin].mean())
+            avg_acc = float(accuracies[in_bin].mean())
+            ece += (n_in / n) * abs(avg_conf - avg_acc)
+
+    return float(ece)

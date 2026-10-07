@@ -1,6 +1,6 @@
 import numpy
 
-from confens.metrics.DiversityMetric import QStatDiversity, SigmaDiversity, Disagreement
+from .DiversityMetric import QStatDiversity, SigmaDiversity, Disagreement
 
 
 def get_default():

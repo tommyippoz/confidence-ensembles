@@ -14,7 +14,7 @@ class ConfidenceBoosting(ConfidenceEnsemble):
     def __init__(self, clf, n_base: int = 20, learning_rate: float = 3.0,
                  sampling_ratio: float = 0.7, relative_boost_thr: float = 0.8, static_boost_thr: float = None,
                  conf_thr: float = None, perc_decisors: float = 1.0,
-                 n_decisors: int = None, weighted: bool = True):
+                 n_decisors: int = None, weighted: bool = True, calibration_str: str = None):
         """
         Constructor
         :param clf: the algorithm to be used for creating base learners
@@ -28,7 +28,7 @@ class ConfidenceBoosting(ConfidenceEnsemble):
         :param n_decisors: number of base learners to be used for prediction
         :param weighted: True if prediction has to be computed as a weighted sum of probabilities
         """
-        super().__init__(clf, n_base, conf_thr, perc_decisors, n_decisors, weighted)
+        super().__init__(clf, n_base, conf_thr, perc_decisors, n_decisors, weighted, calibration_str)
 
         # Boosting thresholds
         self.relative_boost_thr = relative_boost_thr
@@ -87,12 +87,12 @@ class ConfidenceBoosting(ConfidenceEnsemble):
         """
         clf_name = get_classifier_name(self.clf)
         if self.weighted:
-            return "ConfidenceBoosterWeighted(" + str(clf_name) + "-" + \
+            return "ConfBoost(weighted-" + str(clf_name) + "-" + \
                    str(self.n_base) + "-" + str(self.relative_boost_thr) + "-" + str(self.static_boost_thr) + "-" + \
                    str(self.learning_rate) + "-" + str(self.sampling_ratio) + "-" + \
-                   str(self.conf_thr) + "-" + str(self.perc_decisors) + "-" + str(self.n_decisors) + ")"
+                   str(self.conf_thr) + "-" + str(self.perc_decisors) + "-" + str(self.n_decisors) + "-" + str(self.calibration_str) + ")"
         else:
-            return "ConfidenceBooster(" + str(clf_name) + "-" + \
+            return "ConfBoost(" + str(clf_name) + "-" + \
                    str(self.n_base) + "-" + str(self.relative_boost_thr) + "-" + str(self.static_boost_thr) + "-" + \
                    str(self.learning_rate) + "-" + str(self.sampling_ratio) + "-" + \
-                   str(self.conf_thr) + "-" + str(self.perc_decisors) + "-" + str(self.n_decisors) + ")"
+                   str(self.conf_thr) + "-" + str(self.perc_decisors) + "-" + str(self.n_decisors) + "-" + str(self.calibration_str) + ")"

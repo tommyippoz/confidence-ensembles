@@ -1,13 +1,10 @@
 import copy
 
 import numpy
-from pyod.models.base import BaseDetector
 from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.preprocessing import LabelEncoder
 from sklearn.utils import check_X_y
 from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_is_fitted, check_array
-from xgboost import XGBClassifier
 
 # ---------------------------------- SUPPORT METHODS ------------------------------------
 from confens.metrics.EnsembleMetric import get_default
@@ -200,7 +197,7 @@ class Classifier(ClassifierMixin, BaseEstimator):
         return self
 
 
-class UnsupervisedClassifier(Classifier, BaseDetector):
+class UnsupervisedClassifier(Classifier):
     """
     Wrapper for unsupervised classifiers belonging to the library PYOD
     """
@@ -268,36 +265,3 @@ class UnsupervisedClassifier(Classifier, BaseDetector):
         Returns the name of the classifier (as string)
         """
         return self.clf.__class__.__name__
-
-
-class XGB(Classifier):
-    """
-    Wrapper for the xgboost.XGBClassifier algorithm
-    Can be used as reference to see what's needed to extend the Classifier class
-    """
-
-    def __init__(self, n_estimators=100):
-        Classifier.__init__(self, XGBClassifier(n_estimators=n_estimators))
-        self.l_encoder = None
-
-    def fit(self, X, y=None):
-        # Check that X and y have correct shape
-        X, y = check_X_y(X, y)
-
-        # Store the classes seen during fit + other data
-        self.classes_ = unique_labels(y)
-        self.l_encoder = LabelEncoder()
-        y = self.l_encoder.fit_transform(y)
-
-        # self.X_ = X
-        # self.y_ = y
-
-        # Train clf
-        self.clf.fit(X, y)
-        self.feature_importances_ = self.compute_feature_importances()
-
-        # Return the classifier
-        return self
-
-    def classifier_name(self):
-        return "XGBClassifier(" + str(self.clf.n_estimators) + ")"

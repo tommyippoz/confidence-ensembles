@@ -3,15 +3,15 @@ from collections.abc import Iterable
 from multiprocessing.pool import ThreadPool
 
 import numpy
-from pyod.models.base import BaseDetector
 from sklearn.base import is_classifier, BaseEstimator, ClassifierMixin
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils import check_X_y, check_array
 from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_is_fitted
 
 from confens.metrics.EnsembleMetric import get_default
-from confens.utils.classifier_utils import predict_proba, predict_confidence, get_classifier_name
+from confens.utils.classifier_utils import predict_proba, predict_confidence, get_classifier_name, is_pyod
 
 
 def define_bin_proba_thr(probs, cont: float = None) -> float:
@@ -57,7 +57,7 @@ class ConfidenceEnsemble(ClassifierMixin, BaseEstimator):
     """
 
     def __init__(self, clf, n_base: int = 10, conf_thr: float = None, perc_decisors: float = None,
-                 n_decisors: int = None, weighted: bool = False):
+                 n_decisors: int = None, weighted: bool = False, calibration_str: str = None):
         """
         Constructor
         :param clf: the algorithm(s) to be used for creating base learners
@@ -82,17 +82,18 @@ class ConfidenceEnsemble(ClassifierMixin, BaseEstimator):
         self.perc_decisors = perc_decisors
         self.n_decisors = n_decisors
         self.n_base = n_base
+        self.calibration_str = calibration_str
         self.estimators_ = []
 
     def validate_input(self):
         # Setting up classifiers to create base-learners
         self.clf = copy.deepcopy(self.clf) if self.clf is not None else None
-        if is_classifier(self.clf) or isinstance(self.clf, BaseDetector):
+        if is_classifier(self.clf) or is_pyod(self.clf):
             self.clf_list = [self.clf]
         elif isinstance(self.clf, Iterable):
             self.clf_list = []
             for clf_item in self.clf:
-                if is_classifier(clf_item) or isinstance(clf_item, BaseDetector):
+                if is_classifier(clf_item) or is_pyod(clf_item):
                     self.clf_list.append(clf_item)
                 else:
                     print("Cant recognize object s a classifier")
@@ -102,6 +103,21 @@ class ConfidenceEnsemble(ClassifierMixin, BaseEstimator):
         else:
             self.clf_list = [RandomForestClassifier(n_estimators=10)]
             print("clf is not a classifier. Using a 10-tree Random Forest as Base estimator")
+
+        # Checking for calibration
+        if self.calibration_str is not None and self.clf_list is not None and len(self.clf_list) > 0:
+            if self.calibration_str in ["platt", "PLATT", "sigmoid", "sig", "s", "S", "P", "p", "SIGMOID"]:
+                self.calibration_str = "sigmoid"
+            elif self.calibration_str in ["isotonic", "ISOTONIC", "iso", "ISO", "I", "i"]:
+                self.calibration_str = "isotonic"
+            elif self.calibration_str in ["temperature", "TEMPERATURE", "temp", "TEMP", "T", "t"]:
+                self.calibration_str = "temperature"
+            else:
+                print("Unable to recognize %s as calibration mechanism, defaulting to no calibration" % self.calibration_str)
+                self.calibration_str = None
+            if self.calibration_str is not None:
+                self.clf_list = [CalibratedClassifierCV(estimator=x, method=self.calibration_str)
+                                 for x in self.clf_list if not is_pyod(x)]
 
         # N base estimators
         if self.n_base is None or self.n_base <= 1:

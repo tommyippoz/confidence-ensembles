@@ -10,7 +10,6 @@ from sklearn.calibration import CalibratedClassifierCV
 # Name of the folder in which look for tabular (CSV) datasets
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import TunedThresholdClassifierCV, GridSearchCV
-from sklearn.tree import DecisionTreeClassifier
 
 from confens.classifiers.ConfidenceBagging import ConfidenceBagging
 from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting
@@ -18,7 +17,7 @@ from confens.classifiers.ConfidenceBoosting import ConfidenceBoosting
 # The PYOD library contains implementations of unsupervised classifiers.
 # Works only with anomaly detection (no multi-class)
 # ------- GLOBAL VARS -----------
-from confens.utils.classifier_utils import get_classifier_name
+from confens.utils.classifier_utils import get_classifier_name, expected_calibration_error
 from confens.utils.general_utils import current_ms
 
 CSV_FILE = "sample_data/sample_data_arancino.csv"
@@ -64,7 +63,20 @@ if __name__ == '__main__':
         get_base(),
         TunedThresholdClassifierCV(estimator=get_base()),
         ConfidenceBagging(clf=get_base()),
+        ConfidenceBagging(clf=get_base(), calibration_str="sigmoid"),
+        ConfidenceBagging(clf=get_base(), calibration_str="isotonic"),
+        ConfidenceBagging(clf=get_base(), calibration_str="temperature"),
+        CalibratedClassifierCV(estimator=ConfidenceBagging(clf=get_base()), method='sigmoid'),
+        CalibratedClassifierCV(estimator=ConfidenceBagging(clf=get_base(), calibration_str="sigmoid"), method='sigmoid'),
         ConfidenceBoosting(clf=get_base()),
+        ConfidenceBoosting(clf=get_base(), calibration_str="sigmoid"),
+        ConfidenceBoosting(clf=get_base(), calibration_str="isotonic"),
+        ConfidenceBoosting(clf=get_base(), calibration_str="temperature"),
+        CalibratedClassifierCV(estimator=ConfidenceBoosting(clf=get_base())),
+        CalibratedClassifierCV(estimator=ConfidenceBoosting(clf=get_base()), method='sigmoid'),
+        CalibratedClassifierCV(estimator=ConfidenceBoosting(clf=get_base(), calibration_str="sigmoid"),
+                               method='sigmoid'),
+
         TunedThresholdClassifierCV(estimator=ConfidenceBoosting(clf=get_base())),
         CalibratedClassifierCV(estimator=ConfidenceBoosting(clf=get_base()), method='sigmoid'),
         CalibratedClassifierCV(estimator=ConfidenceBoosting(clf=get_base()), method='isotonic'),
@@ -77,7 +89,10 @@ if __name__ == '__main__':
         start_time = current_ms()
         classifier.fit(x_train, y_train)
         end_time = current_ms()
+        clf_probas = classifier.predict_proba(x_test)
         clf_pred = classifier.predict(x_test)
 
-        print('%s has accuracy of %.3f, training in %d ms' %
-              (clf_name, metrics.accuracy_score(y_test, clf_pred), end_time-start_time))  # , metrics.accuracy_score(y_test, cb_pred)))
+        ece = expected_calibration_error(y_test, clf_probas)
+
+        print('%s has accuracy of %.3f, ece of %.3f, training in %d ms' %
+              (clf_name, metrics.accuracy_score(y_test, clf_pred), ece, end_time-start_time))  # , metrics.accuracy_score(y_test, cb_pred)))

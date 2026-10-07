@@ -1,11 +1,9 @@
 import copy
 import random
-from multiprocessing import Pool, Queue
 from multiprocessing.pool import ThreadPool
 
 from confens.classifiers.ConfidenceEnsemble import ConfidenceEnsemble
 from confens.utils.classifier_utils import get_classifier_name
-from confens.utils.general_utils import current_ms
 
 
 class ConfidenceBagging(ConfidenceEnsemble):
@@ -15,7 +13,7 @@ class ConfidenceBagging(ConfidenceEnsemble):
 
     def __init__(self, clf, n_base: int = 10, max_features: float = 0.7, sampling_ratio: float = 0.7,
                  conf_thr: float = None, perc_decisors: float = None, n_decisors: int = None,
-                 weighted: bool = False, parallel_train: bool = True):
+                 weighted: bool = False, parallel_train: bool = True, calibration_str: str = None):
         """
         Constructor
         :param clf: the algorithm to be used for creating base learners
@@ -27,7 +25,7 @@ class ConfidenceBagging(ConfidenceEnsemble):
         :param n_decisors: number of base learners to be used for prediction
         :param weighted: True if prediction has to be computed as a weighted sum of probabilities
         """
-        super().__init__(clf, n_base, conf_thr, perc_decisors, n_decisors, weighted)
+        super().__init__(clf, n_base, conf_thr, perc_decisors, n_decisors, weighted, calibration_str)
         self.max_features = max_features if max_features is not None and 0 < max_features <= 1 else 0.7
         self.sampling_ratio = sampling_ratio if sampling_ratio is not None and 0 < sampling_ratio <= 1 else 0.7
         self.feature_sets = []
@@ -74,10 +72,10 @@ class ConfidenceBagging(ConfidenceEnsemble):
         """
         clf_name = get_classifier_name(self.clf)
         if self.weighted:
-            return "ConfidenceBaggerWeighted(" + str(clf_name) + "-" + str(self.n_base) + "-" + \
+            return "ConfBag(weighted-" + str(clf_name) + "-" + str(self.n_base) + "-" + \
                    str(self.conf_thr) + "-" + str(self.perc_decisors) + "-" + str(self.n_decisors) + "-" + \
-                   str(self.max_features) + "-" + str(self.sampling_ratio) + ")"
+                   str(self.max_features) + "-" + str(self.sampling_ratio) + "-" + str(self.calibration_str) + ")"
         else:
-            return "ConfidenceBagger(" + str(clf_name) + "-" + str(self.n_base) + "-" + \
+            return "ConfBag(" + str(clf_name) + "-" + str(self.n_base) + "-" + \
                    str(self.conf_thr) + "-" + str(self.perc_decisors) + "-" + str(self.n_decisors) + "-" + \
-                   str(self.max_features) + "-" + str(self.sampling_ratio) + ")"
+                   str(self.max_features) + "-" + str(self.sampling_ratio) + "-" + str(self.calibration_str) + ")"
